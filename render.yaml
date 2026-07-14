@@ -1,0 +1,20 @@
+services:
+  - type: web_service
+    name: stopmate-backend
+    env: node
+    plan: free
+    buildCommand: npm run build:server
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+    healthCheck:
+      path: /health
+      interval: 10
+      timeout: 10
+      healthyThreshold: 1
+      unhealthyThreshold: 3

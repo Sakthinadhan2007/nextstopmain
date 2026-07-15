@@ -216,7 +216,8 @@ p {
 .home-page,
 .routes-page,
 .mode-page {
-  margin-top: 110px;
+  margin-top: 0;
+  padding-top: 120px;
 }
 
 .home-page {

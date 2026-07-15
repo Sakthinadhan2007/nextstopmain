@@ -769,18 +769,13 @@ export default function App(): JSX.Element {
               const note = user ? `${routeCount} route(s) | ${stopCount} stop(s)` : "Sign in to load this section.";
               return (
                 <article key={mode} className="home-card">
-                  <div className="home-card-header">
-                    <div>
-                      <h2>{MODE_LABEL[mode]}</h2>
-                      <p className="card-meta">{note}</p>
-                    </div>
-                    <button type="button" className="view-btn" onClick={() => openMode(mode)}>
-                      VIEW
-                    </button>
+                  <div>
+                    <h2>{MODE_LABEL[mode]}</h2>
+                    <p className="card-meta">{note}</p>
                   </div>
-                  {!user ? (
-                    <p className="card-note">Sign in to load this section.</p>
-                  ) : null}
+                  <button type="button" className="view-btn" onClick={() => openMode(mode)}>
+                    VIEW
+                  </button>
                 </article>
               );
             })}

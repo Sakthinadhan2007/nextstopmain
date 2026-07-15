@@ -220,21 +220,24 @@ p {
 }
 
 .home-page {
-  width: min(1180px, 94vw);
+  width: min(1100px, 94vw);
   margin: 0 auto;
   padding-bottom: 1.4rem;
 }
 
 .home-page-inner {
   display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
 .home-card {
-  padding: 1rem 1rem 1.1rem;
-  background: #0b1b34;
-  border: 1px solid #132c57;
-  border-radius: 16px;
+  padding: 1.25rem 1.2rem;
+  background: #091827;
+  border: 1px solid #112a4d;
+  border-radius: 14px;
+  display: grid;
+  gap: 0.8rem;
 }
 
 .home-card-header {
@@ -246,35 +249,35 @@ p {
 
 .home-card-header h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
 }
 
 .card-meta {
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .card-note {
-  margin-top: 0.9rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid #132c57;
+  margin-top: 0.6rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #112a4d;
   border-radius: 12px;
   background: #07111d;
   color: var(--muted);
 }
 
 .view-btn {
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
-  min-width: 96px;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  min-width: 84px;
   background: #0d2145;
-  border: 1px solid #16305d;
+  border: 1px solid #183464;
   color: var(--text);
 }
 
 .view-btn:hover {
-  background: #0f2658;
+  background: #0f2857;
 }
 
 .home-hero,

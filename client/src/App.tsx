@@ -735,7 +735,7 @@ export default function App(): JSX.Element {
           <span className="brand-logo">
             <Logo />
           </span>
-          <span>StopMate</span>
+          <span>Next Stop</span>
         </button>
         <nav className="nav-links">
           <button type="button" onClick={() => openMode("train")}>Train</button>

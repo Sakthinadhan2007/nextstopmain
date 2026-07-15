@@ -75,7 +75,7 @@ const APP_HIGHLIGHTS = [
 ] as const;
 
 const APP_WORKFLOW = [
-  "Sign in once and choose your mode: Train, Metro, Bus, or Custom.",
+  "Explore routes and the app first. Sign in only when you enable location or save custom alerts.",
   "Enable location so StopMate can detect the nearest logical start stop.",
   "Choose destination and enable wake-up alert.",
   "Travel with live distance updates and get alarm before your stop."
@@ -129,7 +129,7 @@ export default function App(): JSX.Element {
   const [showSignIn, setShowSignIn] = useState(false);
   const [authForm, setAuthForm] = useState({ email: "", name: "" });
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [status, setStatus] = useState("Sign in to load Chennai routes.");
+  const [status, setStatus] = useState("Welcome! Explore the app first — sign in only when you enable location or save alerts.");
   const [online, setOnline] = useState(navigator.onLine);
 
   const [user, setUser] = useState<UserRecord | null>(null);
@@ -362,10 +362,10 @@ export default function App(): JSX.Element {
         setView("home");
         setStatus("Auto-signed in using cached credentials.");
       } else {
-        setShowSignIn(true);
+        setShowSignIn(false);
       }
     } else {
-      setShowSignIn(true);
+      setShowSignIn(false);
     }
     
     return () => {
@@ -495,9 +495,9 @@ export default function App(): JSX.Element {
     setUser(null);
     setLocation(null);
     setLastFixTime("");
-    setShowSignIn(true);
+    setShowSignIn(false);
     localStorage.removeItem(LAST_USER_KEY);
-    setStatus("Data cleared. Ready to start fresh.");
+    setStatus("Signed out. Explore first and sign in only when needed.");
   }
 
   function startLocation(): void {
@@ -685,11 +685,6 @@ export default function App(): JSX.Element {
   }
 
   function openMode(mode: TransitCategory): void {
-    if (!user) {
-      setShowSignIn(true);
-      setStatus("Sign in required.");
-      return;
-    }
     setView(mode);
     if (!selectedRoute[mode]) {
       const first = routesByMode[mode][0];
@@ -843,6 +838,9 @@ export default function App(): JSX.Element {
               placeholder="Search routes or stops (example: Guindy, Central, OMR)"
             />
           </div>
+          {!user ? (
+            <p className="muted">Sign in to load your saved routes and alerts. You can still browse the app before that.</p>
+          ) : null}
           {(["train", "metro", "bus"] as const).map((mode) => {
             const modeRoutes = filteredRoutesByMode[mode];
             const totalStops = modeRoutes.reduce((count, route) => count + (stopsByRoute[route.id]?.length ?? 0), 0);

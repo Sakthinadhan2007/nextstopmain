@@ -69,6 +69,21 @@ const CHENNAI_TRANSIT_SEED: SeedRoute[] = [
   },
   {
     mode: "bus",
+    name: "MTC OMR Siruseri Express",
+    startLocation: "Taramani",
+    endLocation: "Siruseri",
+    stops: [
+      { label: "Taramani", latitude: 12.9936, longitude: 80.2304, radiusMeters: 500 },
+      { label: "Perungudi", latitude: 12.96958, longitude: 80.24563, radiusMeters: 500 },
+      { label: "Karapakkam", latitude: 12.93607, longitude: 80.23052, radiusMeters: 500 },
+      { label: "Sholinganallur", latitude: 12.90101, longitude: 80.22793, radiusMeters: 500 },
+      { label: "Navalur", latitude: 12.8261, longitude: 80.2332, radiusMeters: 500 },
+      { label: "SIPCOT Phase II", latitude: 12.8175, longitude: 80.2348, radiusMeters: 500 },
+      { label: "Siruseri", latitude: 12.8218, longitude: 80.2238, radiusMeters: 500 }
+    ]
+  },
+  {
+    mode: "bus",
     name: "MTC Broadway - Red Hills",
     startLocation: "Broadway",
     endLocation: "Red Hills",

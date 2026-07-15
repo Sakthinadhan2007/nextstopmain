@@ -8,7 +8,7 @@ This repo includes a Render configuration for the backend service.
 2. Connect the service to this GitHub repository.
 3. Use `render.yaml` in the repo to configure the service.
 4. Set the Render build and start commands:
-   - build command: `npm run build:server`
+   - build command: `npm run build`
    - start command: `npm run start`
 5. Set environment variables:
    - `PORT=10000`

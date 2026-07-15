@@ -738,9 +738,9 @@ export default function App(): JSX.Element {
           <span>Next Stop</span>
         </button>
         <nav className="nav-links">
+          <button type="button" onClick={() => openMode("bus")}>Bus</button>
           <button type="button" onClick={() => openMode("train")}>Train</button>
           <button type="button" onClick={() => openMode("metro")}>Metro</button>
-          <button type="button" onClick={() => openMode("bus")}>Bus</button>
           <button type="button" onClick={() => openMode("custom")}>Custom</button>
           <button type="button" onClick={() => setView("routes")}>Routes List</button>
           {user ? (
@@ -760,65 +760,31 @@ export default function App(): JSX.Element {
       </section>
 
       {view === "home" ? (
-        <section className="home-grid">
-          <article className="home-hero">
-            <h1>StopMate Chennai Transit Wake-Up App</h1>
-            <p>
-              Track your trip in real time, auto-detect your nearest boarding point from your location,
-              and get a wake-up alert before your destination.
-            </p>
-            <p>
-              StopMate combines route planning, live stop-distance updates, and alert automation in a
-              focused interface made for busy daily travel.
-            </p>
-          </article>
-
-          <section className="home-columns">
-            <article className="home-about">
-              <h2>About StopMate</h2>
-              <p>
-                StopMate is built for practical city commuting. It helps daily travelers across train,
-                metro, bus, and custom routes with reliable wake-up alerts.
-              </p>
-              <p>
-                The app solves one specific pain point: missing your stop. Open the app, select route,
-                pick destination, and keep the alarm workflow ready in the background.
-              </p>
-              <p>
-                The experience is tuned for mobile use, unstable networks, and repeat daily travel.
-              </p>
-            </article>
-
-            <article className="home-workflow">
-              <h2>How It Works</h2>
-              <ol>
-                {APP_WORKFLOW.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ol>
-            </article>
-          </section>
-
-          <section className="home-highlights" aria-label="App highlights">
-            {APP_HIGHLIGHTS.map((item) => (
-              <article key={item.title} className="home-highlight-card">
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </article>
-            ))}
-          </section>
-
-          <section className="home-transport-grid" aria-label="Transport options">
-            {HOME_MODE_ORDER.map((mode) => (
-              <article key={mode} className="transport-card">
-                <h3>{MODE_LABEL[mode]}</h3>
-                <p className="muted">{MODE_DESCRIPTION[mode]}</p>
-                <button type="button" className="open-btn" onClick={() => openMode(mode)}>
-                  Open {MODE_LABEL[mode]}
-                </button>
-              </article>
-            ))}
-          </section>
+        <section className="home-page">
+          <div className="home-page-inner">
+            {HOME_MODE_ORDER.map((mode) => {
+              const modeRoutes = routesByMode[mode];
+              const routeCount = modeRoutes.length;
+              const stopCount = modeRoutes.reduce((sum, route) => sum + (stopsByRoute[route.id]?.length ?? 0), 0);
+              const note = user ? `${routeCount} route(s) | ${stopCount} stop(s)` : "Sign in to load this section.";
+              return (
+                <article key={mode} className="home-card">
+                  <div className="home-card-header">
+                    <div>
+                      <h2>{MODE_LABEL[mode]}</h2>
+                      <p className="card-meta">{note}</p>
+                    </div>
+                    <button type="button" className="view-btn" onClick={() => openMode(mode)}>
+                      VIEW
+                    </button>
+                  </div>
+                  {!user ? (
+                    <p className="card-note">Sign in to load this section.</p>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
         </section>
       ) : null}
 

@@ -194,7 +194,7 @@ p {
 }
 
 .nav-links button:hover {
-  background: #112f55;
+  background: #0f2853;
 }
 
 .system-bar {
@@ -213,31 +213,72 @@ p {
   font-size: 0.88rem;
 }
 
-.home-grid,
+.home-page,
 .routes-page,
 .mode-page {
   margin-top: 110px;
 }
 
-.home-grid {
+.home-page {
   width: min(1180px, 94vw);
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
   padding-bottom: 1.4rem;
+}
+
+.home-page-inner {
   display: grid;
-  gap: 1.25rem;
+  gap: 1rem;
+}
+
+.home-card {
+  padding: 1rem 1rem 1.1rem;
+  background: #0b1b34;
+  border: 1px solid #132c57;
+  border-radius: 16px;
+}
+
+.home-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-card-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.card-meta {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.card-note {
+  margin-top: 0.9rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #132c57;
+  border-radius: 12px;
+  background: #07111d;
+  color: var(--muted);
+}
+
+.view-btn {
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  min-width: 96px;
+  background: #0d2145;
+  border: 1px solid #16305d;
+  color: var(--text);
+}
+
+.view-btn:hover {
+  background: #0f2658;
 }
 
 .home-hero,
-.home-about {
-  border-radius: 16px;
-  background: var(--surface);
-  padding: 1.2rem 1.2rem 1.4rem;
-  border: 1px solid var(--line);
-  display: grid;
-  gap: 0.65rem;
-}
-
+.home-about,
 .home-workflow,
 .home-highlight-card,
 .transport-card,
@@ -249,10 +290,8 @@ p {
 .stop-row,
 .auth-modal {
   background: #0b1b34;
-}
   border-radius: 16px;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid #132c57;
 }
 
 .home-hero h1 {

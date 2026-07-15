@@ -32,7 +32,7 @@ type CacheState = {
 };
 
 const MODES: TransitCategory[] = ["bus", "train", "metro", "custom"];
-const HOME_MODE_ORDER: TransitCategory[] = ["train", "metro", "bus", "custom"];
+const HOME_MODE_ORDER: TransitCategory[] = ["bus", "train", "metro", "custom"];
 const CACHE_PREFIX = "stopmate-cache-v1";
 const LAST_USER_KEY = "stopmate-last-user-v1";
 const LOCAL_ID_KEY = "stopmate-local-id-v1";
@@ -129,7 +129,7 @@ export default function App(): JSX.Element {
   const [showSignIn, setShowSignIn] = useState(false);
   const [authForm, setAuthForm] = useState({ email: "", name: "" });
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [status, setStatus] = useState("Welcome! Explore the app first — sign in only when you enable location or save alerts.");
+  const [status, setStatus] = useState("Explore Chennai routes offline. Sign in to save alerts and sync.");
   const [online, setOnline] = useState(navigator.onLine);
 
   const [user, setUser] = useState<UserRecord | null>(null);
@@ -742,7 +742,7 @@ export default function App(): JSX.Element {
           <button type="button" onClick={() => openMode("train")}>Train</button>
           <button type="button" onClick={() => openMode("metro")}>Metro</button>
           <button type="button" onClick={() => openMode("custom")}>Custom</button>
-          <button type="button" onClick={() => setView("routes")}>Routes List</button>
+          <button type="button" onClick={() => setView("routes")}>Routes</button>
           {user ? (
             <button type="button" onClick={onSignOut}>Sign Out</button>
           ) : (
@@ -753,20 +753,23 @@ export default function App(): JSX.Element {
 
       <section className="system-bar">
         <p>
-          {online ? "Online" : "Offline"} | {isUsingCache ? "[cached data]" : ""} {status}
+          {online ? "Online" : "Offline"} | {status}
           {lastFixTime ? ` | Location: ${lastFixTime}` : ""}
-          {lastSyncTime && `| Synced: ${lastSyncTime}`}
         </p>
       </section>
 
       {view === "home" ? (
         <section className="home-page">
+          <div className="home-hero">
+            <h1>Next Stop Chennai</h1>
+            <p>Plan journeys across Chennai transit with offline routes, location-aware start stops, and destination wake-up alerts for bus, train, metro, and custom trips.</p>
+          </div>
           <div className="home-page-inner">
             {HOME_MODE_ORDER.map((mode) => {
               const modeRoutes = routesByMode[mode];
               const routeCount = modeRoutes.length;
               const stopCount = modeRoutes.reduce((sum, route) => sum + (stopsByRoute[route.id]?.length ?? 0), 0);
-              const note = user ? `${routeCount} route(s) | ${stopCount} stop(s)` : "Sign in to load this section.";
+              const note = user ? `${routeCount} route(s) | ${stopCount} stop(s)` : "Browse routes first, then sign in to save alerts.";
               return (
                 <article key={mode} className="home-card">
                   <div>
@@ -774,7 +777,7 @@ export default function App(): JSX.Element {
                     <p className="card-meta">{note}</p>
                   </div>
                   <button type="button" className="view-btn" onClick={() => openMode(mode)}>
-                    VIEW
+                    Explore
                   </button>
                 </article>
               );
@@ -786,9 +789,9 @@ export default function App(): JSX.Element {
       {view === "routes" ? (
         <section className="routes-page">
           <div className="routes-header">
-            <h1>Routes List</h1>
+            <h1>Chennai Transit Routes</h1>
             <p className="muted">
-              Search by route name, terminal, or stop name. Expand any route to view the full stop order.
+              Search by route name, terminal, or stop. Expand any service to see the full stop sequence and route coverage.
             </p>
           </div>
           <div className="routes-toolbar">
@@ -800,7 +803,7 @@ export default function App(): JSX.Element {
             />
           </div>
           {!user ? (
-            <p className="muted">Sign in to load your saved routes and alerts. You can still browse the app before that.</p>
+            <p className="muted">Sign in to save alerts and keep your route data synced. Browse safely offline before signing in.</p>
           ) : null}
           {(["train", "metro", "bus"] as const).map((mode) => {
             const modeRoutes = filteredRoutesByMode[mode];
@@ -841,7 +844,7 @@ export default function App(): JSX.Element {
                 })}
                 {modeRoutes.length === 0 ? (
                   <p className="muted">
-                    {routeSearch.trim() ? "No matching routes in this mode." : "No routes loaded."}
+                    {routeSearch.trim() ? "No matching routes in this mode." : "No routes loaded yet."}
                   </p>
                 ) : null}
               </div>
@@ -875,9 +878,9 @@ export default function App(): JSX.Element {
                 {isLocating ? "Locating..." : "Enable Location"}
               </button>
               <button type="button" onClick={() => void armAlarm()}>
-                {alarmArmed ? "Alarm Armed" : "Arm Alarm"}
+                {alarmArmed ? "Alert armed" : "Arm wake-up alert"}
               </button>
-              <button type="button" onClick={stopAlarm}>Disable Alarm</button>
+              <button type="button" onClick={stopAlarm}>Disable alert</button>
             </div>
 
             {activeMode !== "custom" ? (
@@ -951,7 +954,7 @@ export default function App(): JSX.Element {
                     Picked Point
                     <input
                       readOnly
-                      value={pickedLocation ? `${pickedLocation.lat.toFixed(6)}, ${pickedLocation.lng.toFixed(6)}` : "Tap map"}
+                      value={pickedLocation ? `${pickedLocation.lat.toFixed(6)}, ${pickedLocation.lng.toFixed(6)}` : "Tap map to choose location"}
                     />
                   </label>
                   <div className="control-row">

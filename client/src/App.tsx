@@ -785,6 +785,22 @@ export default function App(): JSX.Element {
               );
             })}
           </div>
+
+          <div className="home-columns" style={{ marginTop: "2.5rem" }}>
+            <section className="home-about">
+              <h2>What is StopMate?</h2>
+              <p>StopMate is a smart, location-aware travel wake-up reminder app designed for Chennai commuters. It monitors your live GPS location in the background and rings an alarm when you approach your target bus, train, or metro station, ensuring you never sleep past your stop.</p>
+            </section>
+            <section className="home-workflow">
+              <h2>How to Use</h2>
+              <ol>
+                <li><strong>Explore Transit Modes:</strong> Choose Bus, Train, Metro, or Custom.</li>
+                <li><strong>Select Your Route:</strong> Pick your active route from our seeded Chennai transport database.</li>
+                <li><strong>Set Target Stop:</strong> Select your target destination and tap <strong>Enable Wake-Up Alert</strong>.</li>
+                <li><strong>Save Custom Pins:</strong> In Custom mode, tap anywhere on the map, name the location, set a custom alert radius, and save it.</li>
+              </ol>
+            </section>
+          </div>
         </section>
       ) : null}
 

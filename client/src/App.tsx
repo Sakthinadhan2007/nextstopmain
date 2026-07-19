@@ -76,7 +76,7 @@ const APP_HIGHLIGHTS = [
 
 const APP_WORKFLOW = [
   "Explore routes and the app first. Sign in only when you enable location or save custom alerts.",
-  "Enable location so StopMate can detect the nearest logical start stop.",
+  "Enable location so ERANGU can detect the nearest logical start stop.",
   "Choose destination and enable wake-up alert.",
   "Travel with live distance updates and get alarm before your stop."
 ] as const;
@@ -737,7 +737,7 @@ export default function App(): JSX.Element {
           <span className="brand-logo">
             <Logo />
           </span>
-          <span>Next Stop</span>
+          <span>ERANGU</span>
         </button>
         <nav className="nav-links">
           <button type="button" onClick={() => openMode("bus")}>Bus</button>
@@ -763,7 +763,7 @@ export default function App(): JSX.Element {
       {view === "home" ? (
         <section className="home-page">
           <div className="home-hero">
-            <h1>Next Stop Chennai</h1>
+            <h1>ERANGU Chennai</h1>
             <p>Plan journeys across Chennai transit with offline routes, location-aware start stops, and destination wake-up alerts for bus, train, metro, and custom trips.</p>
           </div>
           <div className="home-page-inner">
@@ -788,8 +788,8 @@ export default function App(): JSX.Element {
 
           <div className="home-columns" style={{ marginTop: "2.5rem" }}>
             <section className="home-about">
-              <h2>What is StopMate?</h2>
-              <p>StopMate is a smart, location-aware travel wake-up reminder app designed for Chennai commuters. It monitors your live GPS location in the background and rings an alarm when you approach your target bus, train, or metro station, ensuring you never sleep past your stop.</p>
+              <h2>What is ERANGU?</h2>
+              <p>ERANGU is a smart, location-aware travel wake-up reminder app designed for Chennai commuters. It monitors your live GPS location in the background and rings an alarm when you approach your target bus, train, or metro station, ensuring you never sleep past your stop.</p>
             </section>
             <section className="home-workflow">
               <h2>How to Use</h2>

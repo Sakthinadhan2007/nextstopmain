@@ -86,7 +86,7 @@ export const modeAlertBands: Record<
 > = {
   bus: { minMeters: 400, maxMeters: 600, defaultMeters: 500 },
   metro: { minMeters: 150, maxMeters: 350, defaultMeters: 250 },
-  train: { minMeters: 600, maxMeters: 600, defaultMeters: 600 },
+  train: { minMeters: 800, maxMeters: 3000, defaultMeters: 1500 },
   custom: { minMeters: 150, maxMeters: 1200, defaultMeters: 600 }
 };
 

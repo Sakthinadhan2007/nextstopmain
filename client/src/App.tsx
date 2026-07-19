@@ -45,7 +45,7 @@ const MODE_LABEL: Record<TransitCategory, string> = {
 };
 
 const MODE_DESCRIPTION: Record<TransitCategory, string> = {
-  train: "Suburban corridors with a fixed 600m wake-up radius.",
+  train: "Suburban corridors with a 1500m wake-up radius.",
   metro: "Metro corridors with multi-line track overlays on map.",
   bus: "High-coverage city routes for daily office and college commute.",
   custom: "Save private pickup/drop points with your own alert range."
@@ -660,6 +660,7 @@ export default function App(): JSX.Element {
 
   async function removeCustom(stopId: number): Promise<void> {
     if (!customRoute) return;
+    if (!window.confirm("Are you sure you want to delete this custom stop?")) return;
     setStopsByRoute((prev) => ({
       ...prev,
       [customRoute.id]: (prev[customRoute.id] ?? []).filter((stop) => stop.id !== stopId)
@@ -674,6 +675,7 @@ export default function App(): JSX.Element {
 
   async function clearCustom(): Promise<void> {
     if (!customRoute) return;
+    if (!window.confirm("Are you sure you want to delete all custom stops? This action cannot be undone.")) return;
     const ids = new Set(customStops.map((stop) => stop.id));
     setStopsByRoute((prev) => ({ ...prev, [customRoute.id]: [] }));
     setAlerts((prev) => prev.filter((alert) => !ids.has(alert.stopId)));
@@ -944,11 +946,21 @@ export default function App(): JSX.Element {
                 <form className="custom-form" onSubmit={(event) => void addCustomStop(event)}>
                   <label>
                     Label
-                    <input value={customLabel} onChange={(event) => setCustomLabel(event.target.value)} required />
+                    <input
+                      value={customLabel}
+                      onChange={(event) => setCustomLabel(event.target.value)}
+                      required
+                      placeholder="e.g. Home, Office"
+                    />
                   </label>
                   <label>
                     Radius (m)
-                    <input value={customRadius} onChange={(event) => setCustomRadius(event.target.value)} required />
+                    <input
+                      value={customRadius}
+                      onChange={(event) => setCustomRadius(event.target.value)}
+                      required
+                      placeholder="e.g. 500"
+                    />
                   </label>
                   <label>
                     Picked Point
@@ -957,10 +969,7 @@ export default function App(): JSX.Element {
                       value={pickedLocation ? `${pickedLocation.lat.toFixed(6)}, ${pickedLocation.lng.toFixed(6)}` : "Tap map to choose location"}
                     />
                   </label>
-                  <div className="control-row">
-                    <button type="submit">Add Stop</button>
-                    <button type="button" onClick={() => void clearCustom()}>Quick Delete All</button>
-                  </div>
+                  <button type="submit" className="btn-primary">Add Stop</button>
                 </form>
                 <div className="custom-list">
                   {customStops.map((stop) => (
@@ -991,13 +1000,28 @@ export default function App(): JSX.Element {
                             >
                               Edit
                             </button>
-                            <button type="button" onClick={() => void removeCustom(stop.id)}>Quick Delete</button>
+                            <button
+                              type="button"
+                              className="btn-destructive"
+                              onClick={() => void removeCustom(stop.id)}
+                            >
+                              Delete
+                            </button>
                           </div>
                         </>
                       )}
                     </article>
                   ))}
                   {customStops.length === 0 ? <p className="muted">No custom stops yet.</p> : null}
+                  {customStops.length > 0 ? (
+                    <button
+                      type="button"
+                      className="btn-destructive-outline btn-full-width"
+                      onClick={() => void clearCustom()}
+                    >
+                      Delete All Custom Stops
+                    </button>
+                  ) : null}
                 </div>
               </section>
             )}
@@ -1084,7 +1108,7 @@ export default function App(): JSX.Element {
       ) : null}
 
       <footer className="app-footer">
-        <p>Developer: SAKTHINADHAN GT</p>
+        <p>Developer: Sakthinadhan GT</p>
       </footer>
     </main>
   );

@@ -773,7 +773,7 @@ export default function App(): JSX.Element {
               const stopCount = modeRoutes.reduce((sum, route) => sum + (stopsByRoute[route.id]?.length ?? 0), 0);
               const note = user ? `${routeCount} route(s) | ${stopCount} stop(s)` : "Browse routes first, then sign in to save alerts.";
               return (
-                <article key={mode} className="home-card">
+                <article key={mode} className={`home-card ${mode}`}>
                   <div>
                     <h2>{MODE_LABEL[mode]}</h2>
                     <p className="card-meta">{note}</p>

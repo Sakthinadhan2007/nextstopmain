@@ -799,22 +799,18 @@ export default function App(): JSX.Element {
             </div>
             <div className="home-feature-grid">
               <div className="home-feature-card">
-                <span className="hfc-icon">📍</span>
                 <h3>Auto Start Detection</h3>
                 <p>Your current position is used to automatically pick the best boarding stop. No manual input needed.</p>
               </div>
               <div className="home-feature-card">
-                <span className="hfc-icon">🔔</span>
                 <h3>Destination Wake-Up</h3>
                 <p>Set an alert for your destination. A loud alarm and vibration fires before you arrive — stress-free travel.</p>
               </div>
               <div className="home-feature-card">
-                <span className="hfc-icon">🚌</span>
                 <h3>Full Chennai Coverage</h3>
                 <p>Train, metro, and city bus routes are pre-loaded. Custom mode lets you pin any personal location.</p>
               </div>
               <div className="home-feature-card">
-                <span className="hfc-icon">📶</span>
                 <h3>Works Offline</h3>
                 <p>Cached route data and saved alerts keep working even when your signal drops mid-journey.</p>
               </div>

@@ -405,13 +405,6 @@ p {
   border-color: var(--accent);
 }
 
-.hfc-icon {
-  font-size: 1.6rem;
-  line-height: 1;
-  display: block;
-  margin-bottom: 0.2rem;
-}
-
 .home-feature-card h3 {
   font-size: 0.98rem;
   font-weight: 600;

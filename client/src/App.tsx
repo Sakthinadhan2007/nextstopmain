@@ -786,21 +786,76 @@ export default function App(): JSX.Element {
             })}
           </div>
 
-          <div className="home-columns" style={{ marginTop: "2.5rem" }}>
-            <section className="home-about">
-              <h2>What is ERANGU?</h2>
-              <p>ERANGU is a smart, location-aware travel wake-up reminder app designed for Chennai commuters. It monitors your live GPS location in the background and rings an alarm when you approach your target bus, train, or metro station, ensuring you never sleep past your stop.</p>
-            </section>
-            <section className="home-workflow">
-              <h2>How to Use</h2>
-              <ol>
-                <li><strong>Explore Transit Modes:</strong> Choose Bus, Train, Metro, or Custom.</li>
-                <li><strong>Select Your Route:</strong> Pick your active route from our seeded Chennai transport database.</li>
-                <li><strong>Set Target Stop:</strong> Select your target destination and tap <strong>Enable Wake-Up Alert</strong>.</li>
-                <li><strong>Save Custom Pins:</strong> In Custom mode, tap anywhere on the map, name the location, set a custom alert radius, and save it.</li>
-              </ol>
-            </section>
-          </div>
+          {/* ── What is ERANGU ── */}
+          <section className="home-info-section">
+            <div className="home-info-lead">
+              <span className="home-info-label">About the App</span>
+              <h2 className="home-info-heading">What is ERANGU?</h2>
+              <p className="home-info-body">
+                ERANGU is a <strong>location-aware wake-up alarm</strong> built for Chennai daily commuters.
+                It watches your live GPS in the background and fires a loud alarm + vibration the moment
+                you near your chosen stop — so you can close your eyes on the train and never miss your station.
+              </p>
+            </div>
+            <div className="home-feature-grid">
+              <div className="home-feature-card">
+                <span className="hfc-icon">📍</span>
+                <h3>Auto Start Detection</h3>
+                <p>Your current position is used to automatically pick the best boarding stop. No manual input needed.</p>
+              </div>
+              <div className="home-feature-card">
+                <span className="hfc-icon">🔔</span>
+                <h3>Destination Wake-Up</h3>
+                <p>Set an alert for your destination. A loud alarm and vibration fires before you arrive — stress-free travel.</p>
+              </div>
+              <div className="home-feature-card">
+                <span className="hfc-icon">🚌</span>
+                <h3>Full Chennai Coverage</h3>
+                <p>Train, metro, and city bus routes are pre-loaded. Custom mode lets you pin any personal location.</p>
+              </div>
+              <div className="home-feature-card">
+                <span className="hfc-icon">📶</span>
+                <h3>Works Offline</h3>
+                <p>Cached route data and saved alerts keep working even when your signal drops mid-journey.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* ── How to Use ── */}
+          <section className="home-howto-section">
+            <span className="home-info-label">Quick Guide</span>
+            <h2 className="home-info-heading">How to Use</h2>
+            <div className="home-steps">
+              <div className="home-step">
+                <span className="hstep-num">01</span>
+                <div className="hstep-body">
+                  <h3>Browse Transit Modes</h3>
+                  <p>Tap <strong>Bus</strong>, <strong>Train</strong>, <strong>Metro</strong>, or <strong>Custom</strong> from the nav bar. No account needed to explore routes.</p>
+                </div>
+              </div>
+              <div className="home-step">
+                <span className="hstep-num">02</span>
+                <div className="hstep-body">
+                  <h3>Sign In &amp; Enable Location</h3>
+                  <p>Sign in when you're ready to save alerts. Grant location permission so ERANGU can find your nearest stop in real time.</p>
+                </div>
+              </div>
+              <div className="home-step">
+                <span className="hstep-num">03</span>
+                <div className="hstep-body">
+                  <h3>Pick Your Destination</h3>
+                  <p>Choose a route, select your target stop from the list, then tap <strong>Enable Wake-Up Alert</strong> to arm the alarm.</p>
+                </div>
+              </div>
+              <div className="home-step">
+                <span className="hstep-num">04</span>
+                <div className="hstep-body">
+                  <h3>Travel &amp; Relax</h3>
+                  <p>Lock your screen and keep the tab open. ERANGU tracks distance live and wakes you with a sound + vibration when you're close.</p>
+                </div>
+              </div>
+            </div>
+          </section>
         </section>
       ) : null}
 

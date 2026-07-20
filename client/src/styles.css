@@ -257,28 +257,28 @@ p {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.16;
+  z-index: -1;
+  opacity: 0.18;
   pointer-events: none;
   background-position: right 1rem bottom 1rem;
   background-size: 45%;
   background-repeat: no-repeat;
-  background-image: var(--card-bg);
 }
 
-.home-card.bus {
-  --card-bg: url("/bus.svg");
+.home-card.bus::before {
+  background-image: url("/bus.svg");
 }
 
-.home-card.train {
-  --card-bg: url("/train.svg");
+.home-card.train::before {
+  background-image: url("/train.svg");
 }
 
-.home-card.metro {
-  --card-bg: url("/metro.svg");
+.home-card.metro::before {
+  background-image: url("/metro.svg");
 }
 
-.home-card.custom {
-  --card-bg: url("/car.svg");
+.home-card.custom::before {
+  background-image: url("/car.svg");
 }
 
 .home-card h2 {
@@ -334,38 +334,178 @@ p {
   max-width: 74ch;
 }
 
-.home-columns {
+/* ── Home Info Sections ─────────────────────────────────────────── */
+
+.home-info-section {
+  margin-top: 2.8rem;
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
   gap: 2rem;
-  align-items: start;
 }
 
-.home-about h2,
-.home-workflow h2 {
-  font-size: 1.22rem;
-  letter-spacing: 0.01em;
-}
-
-.home-workflow {
-  padding: 0.45rem 0 0.85rem;
-  border-bottom: 1px solid var(--line);
+.home-howto-section {
+  margin-top: 2.5rem;
   display: grid;
-  gap: 0.7rem;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
 }
 
-.home-workflow ol {
-  margin: 0;
-  padding-left: 1.2rem;
-  display: grid;
-  gap: 0.5rem;
+.home-info-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.4rem;
 }
 
-.home-workflow li {
+.home-info-heading {
+  font-size: clamp(1.25rem, 2vw, 1.6rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin-bottom: 0.6rem;
+}
+
+.home-info-lead {
+  max-width: 68ch;
+}
+
+.home-info-body {
   color: var(--muted);
-  line-height: 1.52;
-  padding-left: 0.15rem;
+  line-height: 1.72;
+  font-size: 1.02rem;
+  max-width: 68ch;
 }
+
+.home-info-body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── Feature Cards ───────────────────────────────────────────────── */
+
+.home-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.home-feature-card {
+  padding: 1.4rem 1.2rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.55rem;
+  transition: border-color 0.18s;
+}
+
+.home-feature-card:hover {
+  border-color: var(--accent);
+}
+
+.hfc-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.home-feature-card h3 {
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.home-feature-card p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 860px) {
+  .home-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .home-feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── How-to Steps ─────────────────────────────────────────────────── */
+
+.home-steps {
+  display: grid;
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.home-step {
+  display: flex;
+  gap: 1.4rem;
+  align-items: flex-start;
+  padding: 1.4rem 1.6rem;
+  background: var(--surface-2);
+  transition: background 0.15s;
+}
+
+.home-step:hover {
+  background: var(--surface);
+}
+
+.hstep-num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+  opacity: 0.55;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 2.8rem;
+  padding-top: 0.12rem;
+}
+
+.hstep-body {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.hstep-body h3 {
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.hstep-body p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.hstep-body strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+@media (max-width: 520px) {
+  .home-step {
+    gap: 1rem;
+    padding: 1.1rem 1.2rem;
+  }
+  .hstep-num {
+    font-size: 1.25rem;
+    width: 2.2rem;
+  }
+}
+
 
 .home-highlights {
   display: grid;

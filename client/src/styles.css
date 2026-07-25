@@ -222,6 +222,23 @@ p {
   font-size: 0.88rem;
 }
 
+/* ── Background tracking warning banner ─────────────────────────────── */
+.bg-warning-banner {
+  position: fixed;
+  top: 104px; /* below system-bar */
+  left: 0;
+  right: 0;
+  z-index: 1090;
+  background: #7c3e00;
+  color: #ffe8c0;
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.45;
+  padding: 0.55rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid #a05010;
+}
+
 .home-page,
 .routes-page,
 .mode-page {

@@ -171,6 +171,8 @@ export default function App(): JSX.Element {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const cooldownRef = useRef<Record<number, number>>({});
   const localIdRef = useRef<number>(Number(localStorage.getItem(LOCAL_ID_KEY) ?? "-1"));
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const [isHidden, setIsHidden] = useState(false);
 
   const activeMode = view === "home" || view === "routes" ? null : view;
 
@@ -310,6 +312,13 @@ export default function App(): JSX.Element {
       audio.currentTime = 0;
     }
     setAlarmOn(false);
+    // Release wake lock when alarm stops
+    wakeLockRef.current?.release().catch(() => null);
+    wakeLockRef.current = null;
+    // Dismiss tracking notification
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "DISMISS_TRACKING" });
+    }
   }
 
   function startAlarm(): void {
@@ -332,9 +341,40 @@ export default function App(): JSX.Element {
       audio.pause();
       audio.currentTime = 0;
       setAlarmArmed(true);
-      setStatus("Alarm armed.");
+      setStatus("Alarm armed. Keep this tab open and screen unlocked for best tracking.");
     } catch {
       setStatus("Browser blocked audio. Try again and allow sound.");
+      return;
+    }
+    // Request Wake Lock — prevents screen from sleeping while tracking
+    if ("wakeLock" in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as unknown as { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock.request("screen");
+        wakeLockRef.current.addEventListener("release", () => {
+          // Re-acquire if alarm is still armed (e.g. user pressed power button briefly)
+          if (alarmArmed) {
+            (navigator as unknown as { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock
+              .request("screen")
+              .then((lock) => { wakeLockRef.current = lock; })
+              .catch(() => null);
+          }
+        });
+      } catch {
+        // Wake Lock not granted — silently continue
+      }
+    }
+    // Show persistent notification via service worker (keeps process alive on Android)
+    if ("Notification" in window) {
+      const perm = Notification.permission === "granted"
+        ? "granted"
+        : await Notification.requestPermission();
+      if (perm === "granted" && "serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "SHOW_TRACKING",
+          title: "ERANGU — Tracking Active",
+          body: "Location monitoring is running. You will be alerted near your stop."
+        });
+      }
     }
   }
 
@@ -438,6 +478,21 @@ export default function App(): JSX.Element {
       return next;
     });
   }, [routesByMode, user]);
+
+  useEffect(() => {
+    // Re-acquire wake lock when the screen wakes back up (visibility change)
+    const onVisibilityChange = (): void => {
+      setIsHidden(document.hidden);
+      if (!document.hidden && alarmArmed && "wakeLock" in navigator && !wakeLockRef.current) {
+        (navigator as unknown as { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock
+          .request("screen")
+          .then((lock) => { wakeLockRef.current = lock; })
+          .catch(() => null);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [alarmArmed]);
 
   useEffect(() => {
     return () => {
@@ -759,6 +814,12 @@ export default function App(): JSX.Element {
           {lastFixTime ? ` | Location: ${lastFixTime}` : ""}
         </p>
       </section>
+
+      {alarmArmed && isHidden ? (
+        <div className="bg-warning-banner" role="alert">
+          ⚠️ Tab is in background — location tracking may be paused by the browser. Switch back to this tab to resume.
+        </div>
+      ) : null}
 
       {view === "home" ? (
         <section className="home-page">

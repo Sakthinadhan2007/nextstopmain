@@ -1,5 +1,6 @@
-const CACHE_VERSION = "stopmate-v1";
+const CACHE_VERSION = "stopmate-v2";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/alarm.mp3"];
+const TRACKING_NOTIF_TAG = "erangu-tracking";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -15,6 +16,50 @@ self.addEventListener("activate", (event) => {
       .then(() => self.clients.claim())
   );
 });
+
+// ── Message handler ────────────────────────────────────────────────────────
+// Main app sends SHOW_TRACKING when alarm is armed to post a sticky notification.
+// This keeps the browser process alive on Android even when the screen dims.
+self.addEventListener("message", (event) => {
+  if (!event.data) return;
+
+  if (event.data.type === "SHOW_TRACKING") {
+    const { title, body } = event.data;
+    self.registration.showNotification(title || "ERANGU — Tracking Active", {
+      body: body || "Location monitoring is running. You will be alerted near your stop.",
+      tag: TRACKING_NOTIF_TAG,
+      renotify: false,
+      silent: true,
+      requireInteraction: true,
+      icon: "/icon.svg",
+      badge: "/icon.svg",
+      actions: [{ action: "open", title: "Open App" }]
+    });
+    return;
+  }
+
+  if (event.data.type === "DISMISS_TRACKING") {
+    self.registration.getNotifications({ tag: TRACKING_NOTIF_TAG }).then((notifs) => {
+      notifs.forEach((n) => n.close());
+    });
+    return;
+  }
+});
+
+// Tap on the tracking notification → focus or open the app tab
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) return client.focus();
+      }
+      return self.clients.openWindow("/");
+    })
+  );
+});
+
+// ── Network strategies ─────────────────────────────────────────────────────
 
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_VERSION);

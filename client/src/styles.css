@@ -12,6 +12,7 @@
   --bg-gradient: none;
   --top-nav-bg: #15161a;
   --system-bg: #18191e;
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 * {
@@ -98,7 +99,7 @@ p {
 
 .top-nav {
   position: fixed;
-  top: 0;
+  top: var(--safe-top);
   left: 0;
   right: 0;
   z-index: 1200;
@@ -213,7 +214,7 @@ p {
 
 .system-bar {
   position: fixed;
-  top: 68px;
+  top: calc(68px + var(--safe-top));
   left: 0;
   right: 0;
   z-index: 1100;
@@ -230,7 +231,7 @@ p {
 /* ── Background tracking warning banner ─────────────────────────────── */
 .bg-warning-banner {
   position: fixed;
-  top: 104px; /* below system-bar */
+  top: calc(104px + var(--safe-top)); /* below system-bar */
   left: 0;
   right: 0;
   z-index: 1090;
@@ -248,7 +249,7 @@ p {
 .routes-page,
 .mode-page {
   margin-top: 0;
-  padding-top: 120px;
+  padding-top: calc(120px + var(--safe-top));
   flex: 1;
 }
 
@@ -1023,18 +1024,18 @@ p {
   }
 
   .system-bar {
-    top: 62px;
+    top: calc(62px + var(--safe-top));
     padding: 0.45rem 0.55rem;
   }
 
   .home-grid,
   .routes-page,
   .mode-page {
-    margin-top: 102px;
+    margin-top: calc(102px + var(--safe-top));
   }
 
   .mode-page {
-    min-height: calc(100vh - 102px);
+    min-height: calc(100vh - 102px - var(--safe-top));
   }
 
   .home-transport-grid {

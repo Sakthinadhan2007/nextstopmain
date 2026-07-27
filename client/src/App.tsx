@@ -187,6 +187,9 @@ export default function App(): JSX.Element {
 
   const activeMode = view === "home" || view === "routes" ? null : view;
 
+  // Detect if running inside the native Android app (WebView with JS bridge)
+  const isNativeApp = useMemo(() => typeof window !== "undefined" && !!window.ERANGUAndroid, []);
+
   const routesByMode = useMemo(() => {
     const grouped: Record<TransitCategory, RouteRecord[]> = { bus: [], train: [], metro: [], custom: [] };
     routes.forEach((route) => grouped[route.mode].push(route));
@@ -824,7 +827,9 @@ export default function App(): JSX.Element {
           <button type="button" onClick={() => openMode("metro")}>Metro</button>
           <button type="button" onClick={() => openMode("custom")}>Custom</button>
           <button type="button" onClick={() => setView("routes")}>Routes</button>
-          <a href="/app-debug.apk" download className="download-link-btn">Download APK</a>
+          {!isNativeApp ? (
+            <a href="/app-debug.apk" download className="download-link-btn">Download APK</a>
+          ) : null}
           {user ? (
             <button type="button" onClick={onSignOut}>Sign Out</button>
           ) : (

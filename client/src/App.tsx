@@ -800,6 +800,7 @@ export default function App(): JSX.Element {
           <button type="button" onClick={() => openMode("metro")}>Metro</button>
           <button type="button" onClick={() => openMode("custom")}>Custom</button>
           <button type="button" onClick={() => setView("routes")}>Routes</button>
+          <a href="/app-debug.apk" download className="download-link-btn">Download APK</a>
           {user ? (
             <button type="button" onClick={onSignOut}>Sign Out</button>
           ) : (

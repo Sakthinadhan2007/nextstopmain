@@ -193,16 +193,21 @@ p {
   padding-bottom: 2px;
 }
 
-.nav-links button {
+.nav-links button,
+.nav-links .download-link-btn {
   white-space: nowrap;
   background: var(--surface-2);
   border: 1px solid var(--line);
   color: var(--text);
   padding: 0.55rem 0.95rem;
   border-radius: 6px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
-.nav-links button:hover {
+.nav-links button:hover,
+.nav-links .download-link-btn:hover {
   background: var(--line);
 }
 

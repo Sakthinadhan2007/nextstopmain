@@ -22,6 +22,17 @@ import {
 } from "./lib/api";
 
 type Point = { lat: number; lng: number };
+
+type AndroidTrackingBridge = {
+  startTracking: (label: string, latitude: number, longitude: number, radiusMeters: number) => void;
+  stopTracking: () => void;
+};
+
+declare global {
+  interface Window {
+    ERANGUAndroid?: AndroidTrackingBridge;
+  }
+}
 type View = "home" | "routes" | TransitCategory;
 type CacheState = {
   user: UserRecord;
@@ -321,6 +332,16 @@ export default function App(): JSX.Element {
     }
   }
 
+  function startNativeTracking(stop: StopRecord): void {
+    if (!activeMode) return;
+    window.ERANGUAndroid?.startTracking(
+      stop.label,
+      stop.latitude,
+      stop.longitude,
+      triggerDistance(activeMode, stop.radiusMeters)
+    );
+  }
+
   function startAlarm(): void {
     const audio = audioRef.current ?? new Audio("/alarm.mp3");
     audioRef.current = audio;
@@ -543,6 +564,7 @@ export default function App(): JSX.Element {
       watchRef.current = null;
     }
     stopAlarm();
+    window.ERANGUAndroid?.stopTracking();
     setRoutes([]);
     setStopsByRoute({});
     setAlerts([]);
@@ -567,6 +589,7 @@ export default function App(): JSX.Element {
     }
     setIsLocating(true);
     void armAlarm();
+    if (currentDest) startNativeTracking(currentDest);
     if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -635,6 +658,7 @@ export default function App(): JSX.Element {
   async function activateDestinationAlarm(): Promise<void> {
     if (!activeMode || !currentDest) return;
     await setAlert(currentDest.id, true);
+    startNativeTracking(currentDest);
     setStatus(`Wake alert enabled for ${currentDest.label}.`);
   }
 

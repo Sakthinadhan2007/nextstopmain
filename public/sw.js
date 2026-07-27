@@ -1,4 +1,4 @@
-const CACHE_VERSION = "stopmate-v2";
+const CACHE_VERSION = "stopmate-v3";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg", "/alarm.mp3"];
 const TRACKING_NOTIF_TAG = "erangu-tracking";
 

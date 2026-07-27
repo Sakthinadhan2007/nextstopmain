@@ -3,100 +3,64 @@ package com.example.erangu
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.webkit.GeolocationPermissions
-import android.webkit.JavascriptInterface
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
+import com.example.erangu.theme.ERANGUTheme
 
 class MainActivity : ComponentActivity() {
-  private lateinit var webView: WebView
 
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    requestAppPermissions()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
 
-    webView = WebView(this).apply {
-      settings.javaScriptEnabled = true
-      settings.domStorageEnabled = true
-      settings.databaseEnabled = true
-      settings.setSupportZoom(false)
-      settings.mediaPlaybackRequiresUserGesture = false
-      addJavascriptInterface(NativeTrackingBridge(), "ERANGUAndroid")
-      webViewClient = object : WebViewClient() {
-        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-          return request.url.host != APP_HOST
+        // Request permissions early
+        requestPermissionsIfNeeded()
+
+        setContent {
+            ERANGUTheme(darkTheme = true, dynamicColor = false) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFF0D0E11)
+                ) {
+                    ERANGUNavigation(activity = this)
+                }
+            }
         }
-      }
-      webChromeClient = object : WebChromeClient() {
-        override fun onGeolocationPermissionsShowPrompt(
-          origin: String,
-          callback: GeolocationPermissions.Callback
-        ) {
-          if (hasLocationPermission()) {
-            callback.invoke(origin, true, false)
-          } else {
-            requestAppPermissions()
-            callback.invoke(origin, false, false)
-          }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+        flags: Int
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults, flags)
+        // Permissions are re-checked inside ERANGUNavigation composable
+    }
+
+    private fun requestPermissionsIfNeeded() {
+        val needed = mutableListOf<String>()
+        val fineGranted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!fineGranted) {
+            needed += Manifest.permission.ACCESS_FINE_LOCATION
+            needed += Manifest.permission.ACCESS_COARSE_LOCATION
         }
-      }
-
-      if (savedInstanceState == null) loadUrl(APP_URL) else restoreState(savedInstanceState)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val notifGranted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!notifGranted) needed += Manifest.permission.POST_NOTIFICATIONS
+        }
+        if (needed.isNotEmpty()) {
+            requestPermissions(needed.toTypedArray(), 1001)
+        }
     }
-    setContentView(webView)
-  }
-
-  override fun onSaveInstanceState(outState: Bundle) {
-    webView.saveState(outState)
-    super.onSaveInstanceState(outState)
-  }
-
-  @Deprecated("Deprecated in Java")
-  override fun onBackPressed() {
-    if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
-  }
-
-  private fun hasLocationPermission(): Boolean =
-    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-      ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-  private fun requestAppPermissions() {
-    val permissions = buildList {
-      if (!hasLocationPermission()) {
-        add(Manifest.permission.ACCESS_FINE_LOCATION)
-        add(Manifest.permission.ACCESS_COARSE_LOCATION)
-      }
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
-        ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-      ) add(Manifest.permission.POST_NOTIFICATIONS)
-    }
-    if (permissions.isNotEmpty()) requestPermissions(permissions.toTypedArray(), PERMISSION_REQUEST_CODE)
-  }
-
-  inner class NativeTrackingBridge {
-    @JavascriptInterface
-    fun startTracking(label: String, latitude: Double, longitude: Double, radiusMeters: Int) {
-      if (!hasLocationPermission()) {
-        runOnUiThread { requestAppPermissions() }
-        return
-      }
-      val intent = LocationForegroundService.startIntent(this@MainActivity, label, latitude, longitude, radiusMeters)
-      ContextCompat.startForegroundService(this@MainActivity, intent)
-    }
-
-    @JavascriptInterface
-    fun stopTracking() {
-      stopService(LocationForegroundService.stopIntent(this@MainActivity))
-    }
-  }
-
-  companion object {
-    private const val APP_URL = "https://nextstopmain.onrender.com/"
-    private const val APP_HOST = "nextstopmain.onrender.com"
-    private const val PERMISSION_REQUEST_CODE = 1001
-  }
 }

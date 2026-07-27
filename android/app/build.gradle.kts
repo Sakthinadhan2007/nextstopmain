@@ -56,6 +56,7 @@ dependencies {
   // Arch Components
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
+  implementation("androidx.lifecycle:lifecycle-service:2.8.0")
 
   // Compose
   implementation(libs.androidx.compose.ui)
@@ -81,14 +82,23 @@ dependencies {
   implementation(libs.androidx.navigation3.ui)
   implementation(libs.androidx.navigation3.runtime)
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+  implementation("androidx.navigation:navigation-compose:2.7.7")
 
   // Networking
-  implementation("com.squareup.retrofit2:retrofit:2.11.0")
-  implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+  implementation("com.squareup.retrofit2:retrofit:2.9.0")
+  implementation("com.squareup.retrofit2:converter-gson:2.9.0")
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
   implementation("com.google.code.gson:gson:2.10.1")
 
   // AndroidX core
   implementation("androidx.core:core-ktx:1.13.0")
   implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+  implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
+
+  // FusedLocationProvider — background GPS tracking
+  implementation("com.google.android.gms:play-services-location:21.2.0")
+
+  // Coroutines
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 }

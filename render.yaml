@@ -18,3 +18,13 @@ services:
       timeout: 10
       healthyThreshold: 1
       unhealthyThreshold: 3
+
+  - type: web_service
+    name: erangu-apk
+    env: static
+    plan: free
+    staticPublishPath: ./public
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

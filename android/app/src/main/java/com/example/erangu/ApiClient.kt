@@ -17,8 +17,9 @@ object ApiClient {
     private val gson = GsonBuilder().create()
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     val service: ApiService by lazy {
@@ -46,16 +47,27 @@ interface ApiService {
 
     @POST("api/alerts")
     suspend fun createAlert(@Body body: AlertRequest): AlertResponse
-
-    @POST("api/proximity/{userId}")
-    suspend fun proximity(@Path("userId") userId: Int, @Body body: ProximityRequest): ProximityResponse
 }
 
 data class SignInRequest(val email: String, val name: String)
 data class SignInResponse(val id: Int, val email: String, val name: String)
-data class RouteResponse(val id: Int, val name: String, val mode: String, val startLocation: String, val endLocation: String)
-data class StopResponse(val id: Int, val routeId: Int, val label: String, val lat: Double, val lng: Double, val mode: String, val radiusMeters: Int)
+
+data class RouteResponse(
+    val id: Int,
+    val name: String,
+    val mode: String,
+    val startLocation: String,
+    val endLocation: String
+)
+
+data class StopResponse(
+    val id: Int,
+    val routeId: Int,
+    val label: String,
+    val latitude: Double,   // matches API field name
+    val longitude: Double,  // matches API field name
+    val radiusMeters: Int
+)
+
 data class AlertRequest(val userId: Int, val stopId: Int, val isActive: Boolean)
 data class AlertResponse(val id: Int, val userId: Int, val stopId: Int, val isActive: Boolean)
-data class ProximityRequest(val latitude: Double, val longitude: Double)
-data class ProximityResponse(val nearest: List<StopResponse>, val triggered: List<StopResponse>)

@@ -246,9 +246,7 @@ p {
 }
 
 .home-page,
-.routes-page,
-.mode-page {
-  margin-top: 0;
+.routes-page {
   padding-top: calc(120px + var(--safe-top));
   flex: 1;
 }
@@ -733,7 +731,9 @@ p {
 }
 
 .mode-page {
-  height: calc(100vh - 110px);
+  /* 68px nav + ~38px system-bar = 106px on desktop */
+  height: calc(100vh - 106px - var(--safe-top));
+  margin-top: calc(106px + var(--safe-top));
   display: grid;
   grid-template-columns: 1.3fr 0.9fr;
 }
@@ -1003,17 +1003,17 @@ p {
   .mode-page {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: calc(100vh - 110px);
+    min-height: calc(100vh - 106px - var(--safe-top));
   }
 
   .mode-map-panel {
-    min-height: 54vh;
+    min-height: 52vh;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
 
   .mode-controls {
-    min-height: 46vh;
+    min-height: auto;
   }
 }
 
@@ -1028,14 +1028,16 @@ p {
     padding: 0.45rem 0.55rem;
   }
 
-  .home-grid,
-  .routes-page,
-  .mode-page {
-    margin-top: calc(102px + var(--safe-top));
+  .home-page,
+  .routes-page {
+    padding-top: calc(102px + var(--safe-top));
   }
 
   .mode-page {
-    min-height: calc(100vh - 102px - var(--safe-top));
+    /* 62px nav + ~36px system-bar = 98px on mobile */
+    margin-top: calc(98px + var(--safe-top));
+    height: auto;
+    min-height: calc(100vh - 98px - var(--safe-top));
   }
 
   .home-transport-grid {

@@ -103,7 +103,7 @@ p {
   left: 0;
   right: 0;
   z-index: 1200;
-  height: 68px;
+  height: 72px;
   padding: 0.6rem 1rem;
   background: var(--top-nav-bg);
   border-bottom: 1px solid var(--line);
@@ -214,7 +214,7 @@ p {
 
 .system-bar {
   position: fixed;
-  top: calc(68px + var(--safe-top));
+  top: calc(72px + var(--safe-top));
   left: 0;
   right: 0;
   z-index: 1100;
@@ -231,7 +231,7 @@ p {
 /* ── Background tracking warning banner ─────────────────────────────── */
 .bg-warning-banner {
   position: fixed;
-  top: calc(104px + var(--safe-top)); /* below system-bar */
+  top: calc(108px + var(--safe-top)); /* below system-bar */
   left: 0;
   right: 0;
   z-index: 1090;
@@ -247,7 +247,7 @@ p {
 
 .home-page,
 .routes-page {
-  padding-top: calc(120px + var(--safe-top));
+  padding-top: calc(124px + var(--safe-top));
   flex: 1;
 }
 
@@ -731,9 +731,9 @@ p {
 }
 
 .mode-page {
-  /* 68px nav + ~38px system-bar = 106px on desktop */
-  height: calc(100vh - 106px - var(--safe-top));
-  margin-top: calc(106px + var(--safe-top));
+  /* 72px nav + ~38px system-bar = 110px on desktop */
+  height: calc(100vh - 110px - var(--safe-top));
+  margin-top: calc(110px + var(--safe-top));
   display: grid;
   grid-template-columns: 1.3fr 0.9fr;
 }
@@ -1003,7 +1003,7 @@ p {
   .mode-page {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: calc(100vh - 106px - var(--safe-top));
+    min-height: calc(100vh - 110px - var(--safe-top));
   }
 
   .mode-map-panel {
@@ -1019,25 +1019,25 @@ p {
 
 @media (max-width: 720px) {
   .top-nav {
-    height: 62px;
+    height: 66px;
     padding: 0.5rem 0.55rem;
   }
 
   .system-bar {
-    top: calc(62px + var(--safe-top));
+    top: calc(66px + var(--safe-top));
     padding: 0.45rem 0.55rem;
   }
 
   .home-page,
   .routes-page {
-    padding-top: calc(102px + var(--safe-top));
+    padding-top: calc(106px + var(--safe-top));
   }
 
   .mode-page {
-    /* 62px nav + ~36px system-bar = 98px on mobile */
-    margin-top: calc(98px + var(--safe-top));
+    /* 66px nav + ~36px system-bar = 102px on mobile */
+    margin-top: calc(102px + var(--safe-top));
     height: auto;
-    min-height: calc(100vh - 98px - var(--safe-top));
+    min-height: calc(100vh - 102px - var(--safe-top));
   }
 
   .home-transport-grid {

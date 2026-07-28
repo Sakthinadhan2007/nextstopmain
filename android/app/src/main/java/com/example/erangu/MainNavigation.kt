@@ -183,6 +183,7 @@ fun ERANGUNavigation(activity: Activity) {
                 }
             },
             onHomeClick = { screen = "home" },
+            onRoutesClick = { screen = "routes" },
             onSignInClick = { screen = "signin" },
             onSignOutClick = {
                 isSignedIn = false; userId = null; userName = ""; routes = emptyList()
@@ -197,6 +198,16 @@ fun ERANGUNavigation(activity: Activity) {
         // Screen content
         Box(modifier = Modifier.weight(1f)) {
             when (screen) {
+                "routes" -> RoutesScreen(
+                    routes = routes,
+                    stopsByRoute = stops.groupBy { it.routeId },
+                    onRouteClick = { route ->
+                        selectedMode = route.mode
+                        selectedRoute = route
+                        loadStops(route)
+                        screen = "mode"
+                    }
+                )
                 "home"   -> HomeScreen(
                     isSignedIn = isSignedIn,
                     routes = routes,
@@ -254,6 +265,7 @@ private fun TopBar(
     selectedMode: String,
     onModeClick: (String) -> Unit,
     onHomeClick: () -> Unit,
+    onRoutesClick: () -> Unit,
     onSignInClick: () -> Unit,
     onSignOutClick: () -> Unit
 ) {
@@ -294,6 +306,16 @@ private fun TopBar(
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 )
             }
+            Text(
+                "Routes",
+                color = MutedColor,
+                fontWeight = FontWeight.Normal,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .border(1.dp, LineColor, RoundedCornerShape(6.dp))
+                    .clickable { onRoutesClick() }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
             Text(
                 if (isSignedIn) "Sign Out" else "Sign In",
                 color = MutedColor,
@@ -659,5 +681,95 @@ private fun ModeScreen(
             }
         }
         item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+// ── Routes Screen ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun RoutesScreen(
+    routes: List<RouteResponse>,
+    stopsByRoute: Map<Int, List<StopResponse>>,
+    onRouteClick: (RouteResponse) -> Unit
+) {
+    val displayModes = listOf("train", "metro", "bus")
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BgColor)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Chennai Transit Routes", color = TextColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(
+                "Browse all train, metro, and bus routes. Tap any route to select it and arm a wake-up alert.",
+                color = MutedColor, fontSize = 13.sp, lineHeight = 19.sp
+            )
+        }
+
+        items(displayModes) { mode ->
+            val modeRoutes = routes.filter { it.mode == mode }
+            val totalStops = modeRoutes.sumOf { stopsByRoute[it.id]?.size ?: 0 }
+            item {
+                Text(
+                    MODE_LABELS[mode] ?: mode,
+                    color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 15.sp
+                )
+                Text(
+                    "${modeRoutes.size} route(s) | $totalStops stop(s)",
+                    color = MutedColor, fontSize = 12.sp
+                )
+            }
+            if (modeRoutes.isEmpty()) {
+                item {
+                    Text(
+                        "No routes loaded. Sign in to load routes.",
+                        color = MutedColor, fontSize = 13.sp,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            } else {
+                items(modeRoutes) { route ->
+                    val routeStops = stopsByRoute[route.id]?.sortedBy { it.sortOrder } ?: emptyList()
+                    val previewStops = routeStops.take(6).joinToString(" • ") { it.label }
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onRouteClick(route) },
+                        colors = CardDefaults.cardColors(containerColor = Surface2Color),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(route.name, color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text(
+                                    "${routeStops.size} stops",
+                                    color = MutedColor, fontSize = 11.sp,
+                                    modifier = Modifier
+                                        .background(LineColor, RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            Text(
+                                "${route.startLocation} → ${route.endLocation}",
+                                color = MutedColor, fontSize = 12.sp
+                            )
+                            if (previewStops.isNotEmpty()) {
+                                Text(
+                                    previewStops + if (routeStops.size > 6) " • +${routeStops.size - 6} more" else "",
+                                    color = MutedColor, fontSize = 11.sp, lineHeight = 16.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(4.dp)) }
+        }
     }
 }

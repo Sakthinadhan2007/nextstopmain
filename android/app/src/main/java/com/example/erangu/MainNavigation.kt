@@ -9,6 +9,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +24,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +51,24 @@ private val GreenColor    = Color(0xFF16A34A)
 
 private val MODES = listOf("bus", "train", "metro", "custom")
 private val MODE_LABELS = mapOf("bus" to "Bus", "train" to "Train", "metro" to "Metro", "custom" to "Custom")
+
+// ── Feature data matching the web page ────────────────────────────────────────
+private val APP_FEATURES = listOf(
+    "Auto Start Detection" to "Your current position is used to automatically pick the best boarding stop. No manual input needed.",
+    "Destination Wake-Up" to "Set an alert for your destination. A loud alarm and vibration fires before you arrive — stress-free travel.",
+    "Full Chennai Coverage" to "Train, metro, and city bus routes are pre-loaded. Custom mode lets you pin any personal location.",
+    "Works Offline" to "Cached route data and saved alerts keep working even when your signal drops mid-journey."
+)
+
+// ── How-to-use steps matching the web page ────────────────────────────────────
+private val HOW_TO_STEPS = listOf(
+    HowToStep("01", "Browse Transit Modes", "Tap Bus, Train, Metro, or Custom from the nav bar. No account needed to explore routes."),
+    HowToStep("02", "Sign In & Enable Location", "Sign in when you're ready to save alerts. Grant location permission so ERANGU can find your nearest stop in real time."),
+    HowToStep("03", "Pick Your Destination", "Choose a route, select your target stop from the list, then tap Enable Wake-Up Alert to arm the alarm."),
+    HowToStep("04", "Travel & Relax", "Lock your screen and keep the tab open. ERANGU tracks distance live and wakes you with a sound + vibration when you're close.")
+)
+
+private data class HowToStep(val number: String, val title: String, val description: String)
 
 @Composable
 fun ERANGUNavigation(activity: Activity) {
@@ -211,6 +235,7 @@ fun ERANGUNavigation(activity: Activity) {
                 "home"   -> HomeScreen(
                     isSignedIn = isSignedIn,
                     routes = routes,
+                    stops = stops,
                     onModeClick = { mode ->
                         selectedMode = mode
                         screen = "mode"
@@ -256,6 +281,48 @@ fun ERANGUNavigation(activity: Activity) {
     }
 }
 
+// ── ERANGU Logo (matches the web SVG) ────────────────────────────────────────
+
+@Composable
+private fun EranguLogo(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(34.dp)) {
+        val w = size.width
+        val h = size.height
+        // Outline rounded rect
+        drawRect(
+            color = Color(0xFF2563EB),
+            topLeft = Offset(w * 0.09f, w * 0.09f),
+            size = Size(w * 0.82f, w * 0.82f),
+            style = Stroke(width = 2.5f, cap = StrokeCap.Round)
+        )
+        // Top rail
+        val topRail = Path().apply {
+            moveTo(w * 0.18f, h * 0.38f)
+            cubicTo(w * 0.31f, h * 0.23f, w * 0.51f, h * 0.23f, w * 0.67f, h * 0.36f)
+            cubicTo(w * 0.74f, h * 0.41f, w * 0.79f, h * 0.46f, w * 0.84f, h * 0.52f)
+        }
+        drawPath(topRail, color = Color(0xFF2563EB), style = Stroke(width = 2f, cap = StrokeCap.Round))
+        // Bottom rail
+        val botRail = Path().apply {
+            moveTo(w * 0.18f, h * 0.62f)
+            cubicTo(w * 0.31f, h * 0.47f, w * 0.51f, h * 0.47f, w * 0.67f, h * 0.59f)
+            cubicTo(w * 0.73f, h * 0.64f, w * 0.77f, h * 0.69f, w * 0.81f, h * 0.75f)
+        }
+        drawPath(botRail, color = Color(0xFF2563EB), style = Stroke(width = 2f, cap = StrokeCap.Round))
+        // Link line
+        drawLine(
+            color = Color(0xFF2563EB),
+            start = Offset(w * 0.33f, h * 0.7f),
+            end = Offset(w * 0.68f, h * 0.35f),
+            strokeWidth = 2f,
+            cap = StrokeCap.Round
+        )
+        // Nodes
+        drawCircle(color = Color(0xFF2563EB), radius = w * 0.065f, center = Offset(w * 0.33f, h * 0.7f))
+        drawCircle(color = Color(0xFF2563EB), radius = w * 0.065f, center = Offset(w * 0.68f, h * 0.35f))
+    }
+}
+
 // ── Top Navigation Bar ────────────────────────────────────────────────────────
 
 @Composable
@@ -274,17 +341,23 @@ private fun TopBar(
             .fillMaxWidth()
             .background(Color(0xFF15161A))
             .border(width = 1.dp, color = LineColor, shape = RoundedCornerShape(0.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            "ERANGU",
-            color = TextColor,
-            fontWeight = FontWeight.Bold,
-            fontSize = 17.sp,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.clickable { onHomeClick() }
-        )
+        ) {
+            EranguLogo()
+            Text(
+                "ERANGU",
+                color = TextColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp
+            )
+        }
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.horizontalScroll(rememberScrollState())
@@ -358,9 +431,12 @@ private fun StatusBar(status: String, isTracking: Boolean) {
 private fun HomeScreen(
     isSignedIn: Boolean,
     routes: List<RouteResponse>,
+    stops: List<StopResponse>,
     onModeClick: (String) -> Unit,
     onSignInClick: () -> Unit
 ) {
+    val stopsByRoute = stops.groupBy { it.routeId }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -371,7 +447,7 @@ private fun HomeScreen(
         Spacer(Modifier.height(4.dp))
         Text("ERANGU Chennai", color = TextColor, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Text(
-            "Location-aware stop alarm for Chennai commuters. GPS tracks your journey in the background and alerts you near your stop.",
+            "Plan journeys across Chennai transit with offline routes, location-aware start stops, and destination wake-up alerts for bus, train, metro, and custom trips.",
             color = MutedColor, fontSize = 13.sp, lineHeight = 20.sp
         )
 
@@ -394,7 +470,10 @@ private fun HomeScreen(
         }
 
         MODES.forEach { mode ->
-            val count = routes.count { it.mode == mode }
+            val modeRoutes = routes.filter { it.mode == mode }
+            val routeCount = modeRoutes.size
+            val stopCount = modeRoutes.sumOf { stopsByRoute[it.id]?.size ?: 0 }
+            val note = if (isSignedIn) "$routeCount route(s) | $stopCount stop(s)" else "Browse routes first, then sign in to save alerts."
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -409,24 +488,42 @@ private fun HomeScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(MODE_LABELS[mode] ?: mode, color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                        Text(
-                            if (isSignedIn) "$count route(s)" else "Sign in to load routes",
-                            color = MutedColor, fontSize = 12.sp
-                        )
+                        Text(note, color = MutedColor, fontSize = 12.sp)
                     }
-                    Text("Explore →", color = AccentColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Explore", color = AccentColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
 
-        Spacer(Modifier.height(8.dp))
-        Text("How it works", color = TextColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        listOf(
-            "01" to "Sign in and pick a mode (Bus / Train / Metro)",
-            "02" to "Select your route and destination stop",
-            "03" to "Tap Arm Alert — GPS tracks in the background",
-            "04" to "Alarm + vibration fires when you reach the stop"
-        ).forEach { (num, text) ->
+        // ── What is ERANGU? ──────────────────────────────────────────────
+        Text("About the App", color = MutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text("What is ERANGU?", color = TextColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "ERANGU is a location-aware wake-up alarm built for Chennai daily commuters. " +
+            "It watches your live GPS in the background and fires a loud alarm + vibration the moment " +
+            "you near your chosen stop — so you can close your eyes on the train and never miss your station.",
+            color = MutedColor, fontSize = 13.sp, lineHeight = 20.sp
+        )
+
+        // ── Feature Grid ─────────────────────────────────────────────────
+        Text("Features", color = TextColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        APP_FEATURES.forEach { (title, desc) ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Surface2Color),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text(desc, color = MutedColor, fontSize = 12.sp, lineHeight = 18.sp)
+                }
+            }
+        }
+
+        // ── How to Use ───────────────────────────────────────────────────
+        Text("Quick Guide", color = MutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text("How to Use", color = TextColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        HOW_TO_STEPS.forEach { step ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -435,8 +532,11 @@ private fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                Text(num, color = AccentColor.copy(alpha = 0.6f), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, modifier = Modifier.width(30.dp))
-                Text(text, color = MutedColor, fontSize = 13.sp, lineHeight = 19.sp)
+                Text(step.number, color = AccentColor.copy(alpha = 0.6f), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, modifier = Modifier.width(30.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(step.title, color = TextColor, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(step.description, color = MutedColor, fontSize = 12.sp, lineHeight = 17.sp)
+                }
             }
         }
     }

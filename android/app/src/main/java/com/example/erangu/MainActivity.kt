@@ -45,7 +45,6 @@ class MainActivity : ComponentActivity() {
 
             // Improve performance
             settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-            settings.setAppCacheEnabled(true)
 
             // WebViewClient to handle page navigation
             webViewClient = object : WebViewClient() {

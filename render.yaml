@@ -23,7 +23,8 @@ services:
     name: erangu-apk
     env: static
     plan: free
-    staticPublishPath: ./public
+    buildCommand: npm run build
+    staticPublishPath: ./dist
     routes:
       - type: rewrite
         source: /*

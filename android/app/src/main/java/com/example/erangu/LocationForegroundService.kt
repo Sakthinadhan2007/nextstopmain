@@ -29,40 +29,72 @@ import com.google.android.gms.location.Priority
 
 class LocationForegroundService : Service() {
 
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var fusedClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
     private var wakeLock: PowerManager.WakeLock? = null
     private var destination: Destination? = null
     private var triggered = false
 
+    companion object {
+        var isRunning = false
+            private set
+
+        private const val TRACKING_CHANNEL = "erangu_tracking"
+        private const val ALARM_CHANNEL    = "erangu_alarm"
+        private const val TRACKING_NOTIF   = 1001
+        private const val ALARM_NOTIF      = 1002
+
+        private const val ACTION_STOP      = "com.example.erangu.STOP"
+        private const val KEY_LABEL        = "label"
+        private const val KEY_LAT          = "lat"
+        private const val KEY_LNG          = "lng"
+        private const val KEY_RADIUS       = "radius"
+        private const val DEFAULT_RADIUS   = 800
+
+        private const val INTERVAL_MS      = 4_000L
+        private const val MIN_DISTANCE_M   = 15f
+
+        fun startIntent(
+            ctx: Context, label: String,
+            lat: Double, lng: Double, radius: Int
+        ): Intent = Intent(ctx, LocationForegroundService::class.java).apply {
+            putExtra(KEY_LABEL,  label)
+            putExtra(KEY_LAT,    lat)
+            putExtra(KEY_LNG,    lng)
+            putExtra(KEY_RADIUS, radius)
+        }
+
+        fun stopIntent(ctx: Context): Intent =
+            Intent(ctx, LocationForegroundService::class.java).setAction(ACTION_STOP)
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     override fun onCreate() {
         super.onCreate()
-        createChannels()
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        createNotificationChannels()
+        fusedClient = LocationServices.getFusedLocationProviderClient(this)
 
-        // Acquire CPU wake lock so GPS keeps running with screen off
+        // Partial wake lock: keeps CPU alive when screen turns off
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = pm.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "erangu::LocationWakeLock"
-        ).apply { acquire(3 * 60 * 60 * 1000L) } // max 3 hours
+            PowerManager.PARTIAL_WAKE_LOCK, "erangu::TrackingWakeLock"
+        ).apply { acquire(4 * 60 * 60 * 1000L) /* max 4 h */ }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopTracking()
-            return START_NOT_STICKY
-        }
+        if (intent?.action == ACTION_STOP) { stopTracking(); return START_NOT_STICKY }
 
         destination = Destination(
-            label = intent?.getStringExtra(EXTRA_LABEL) ?: "your destination",
-            latitude = intent?.getDoubleExtra(EXTRA_LATITUDE, 0.0) ?: 0.0,
-            longitude = intent?.getDoubleExtra(EXTRA_LONGITUDE, 0.0) ?: 0.0,
-            radiusMeters = intent?.getIntExtra(EXTRA_RADIUS_METERS, DEFAULT_RADIUS_METERS) ?: DEFAULT_RADIUS_METERS
+            label  = intent?.getStringExtra(KEY_LABEL) ?: "destination",
+            lat    = intent?.getDoubleExtra(KEY_LAT, 0.0) ?: 0.0,
+            lng    = intent?.getDoubleExtra(KEY_LNG, 0.0) ?: 0.0,
+            radius = intent?.getIntExtra(KEY_RADIUS, DEFAULT_RADIUS) ?: DEFAULT_RADIUS
         )
         triggered = false
+        isRunning = true
 
-        startForeground(TRACKING_NOTIF_ID, buildTrackingNotification("Heading to ${destination?.label}…"))
+        startForeground(TRACKING_NOTIF, buildTrackingNotif("Heading to ${destination?.label}…"))
         startLocationUpdates()
         return START_STICKY
     }
@@ -72,29 +104,31 @@ class LocationForegroundService : Service() {
     override fun onDestroy() {
         stopLocationUpdates()
         wakeLock?.let { if (it.isHeld) it.release() }
+        isRunning = false
         super.onDestroy()
     }
 
     // ── Location ──────────────────────────────────────────────────────────────
 
     private fun startLocationUpdates() {
-        val allowed = ContextCompat.checkSelfPermission(
+        val ok = ContextCompat.checkSelfPermission(
             this, android.Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
+        if (!ok) { stopTracking(); return }
 
-        if (!allowed) { stopTracking(); return }
-
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, UPDATE_INTERVAL_MS)
-            .setMinUpdateDistanceMeters(UPDATE_DISTANCE_METERS)
+        val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, INTERVAL_MS)
+            .setMinUpdateDistanceMeters(MIN_DISTANCE_M)
             .build()
 
         locationCallback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                val loc = result.lastLocation ?: return
-                val target = destination ?: return
-                val dist = distanceBetween(loc, target.latitude, target.longitude)
-                updateTrackingNotification(dist, target.label)
-                if (!triggered && dist <= target.radiusMeters) {
+            override fun onLocationResult(res: LocationResult) {
+                val loc    = res.lastLocation ?: return
+                val target = destination     ?: return
+                val dist   = distMeters(loc, target.lat, target.lng)
+
+                updateTrackingNotif(dist, target.label)
+
+                if (!triggered && dist <= target.radius) {
                     triggered = true
                     fireAlarm(target.label)
                 }
@@ -102,66 +136,46 @@ class LocationForegroundService : Service() {
         }
 
         try {
-            fusedLocationClient.requestLocationUpdates(
-                request,
-                locationCallback,
-                mainLooper
-            )
-        } catch (e: SecurityException) {
-            stopTracking()
-        }
+            fusedClient.requestLocationUpdates(req, locationCallback, mainLooper)
+        } catch (e: SecurityException) { stopTracking() }
     }
 
     private fun stopLocationUpdates() {
-        if (::locationCallback.isInitialized) {
-            fusedLocationClient.removeLocationUpdates(locationCallback)
-        }
+        if (::locationCallback.isInitialized) fusedClient.removeLocationUpdates(locationCallback)
     }
 
     // ── Alarm ──────────────────────────────────────────────────────────────────
 
     private fun fireAlarm(label: String) {
-        // High-priority alarm notification
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val alarmNotif = NotificationCompat.Builder(this, ALARM_CHANNEL_ID)
-            .setContentTitle("⏰ Wake Up! Approaching $label")
-            .setContentText("You are within the alert radius. Time to get ready!")
+
+        val openApp = PendingIntent.getActivity(
+            this, 0,
+            Intent(this, MainActivity::class.java)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra("alarm", true),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        nm.notify(ALARM_NOTIF, NotificationCompat.Builder(this, ALARM_CHANNEL)
+            .setContentTitle("⏰ Wake Up! — $label")
+            .setContentText("You are approaching your destination. Time to get off!")
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setFullScreenIntent(fullScreenIntent(), true)
+            .setFullScreenIntent(openApp, true)
             .setAutoCancel(true)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .build()
-        nm.notify(ALARM_NOTIF_ID, alarmNotif)
+        )
 
-        // Vibrate pattern: long buzz
         vibrate()
-
-        // Play alarm ringtone
-        try {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            val mp = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                )
-                setDataSource(applicationContext, alarmUri)
-                isLooping = false
-                prepare()
-                start()
-            }
-            // Stop after 30 seconds automatically
-            android.os.Handler(mainLooper).postDelayed({ mp.stop(); mp.release() }, 30_000)
-        } catch (e: Exception) { /* ignore if alarm URI unavailable */ }
-
+        playAlarm()
         stopTracking()
     }
 
     private fun vibrate() {
-        val pattern = longArrayOf(0, 800, 200, 800, 200, 800, 200, 800)
+        val pattern = longArrayOf(0, 900, 200, 900, 200, 900, 200, 900)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vm.defaultVibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
@@ -171,21 +185,27 @@ class LocationForegroundService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 v.vibrate(VibrationEffect.createWaveform(pattern, -1))
             } else {
-                @Suppress("DEPRECATION")
-                v.vibrate(pattern, -1)
+                @Suppress("DEPRECATION") v.vibrate(pattern, -1)
             }
         }
     }
 
-    private fun fullScreenIntent(): PendingIntent {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("alarm_triggered", true)
-        }
-        return PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+    private fun playAlarm() {
+        try {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                setDataSource(applicationContext, uri)
+                isLooping = false
+                prepare(); start()
+                android.os.Handler(mainLooper).postDelayed({ stop(); release() }, 25_000)
+            }
+        } catch (_: Exception) {}
     }
 
     private fun stopTracking() {
@@ -196,95 +216,47 @@ class LocationForegroundService : Service() {
 
     // ── Notifications ──────────────────────────────────────────────────────────
 
-    private fun buildTrackingNotification(text: String): Notification {
-        val stopIntent = PendingIntent.getService(
+    private fun buildTrackingNotif(text: String): Notification {
+        val stopPi = PendingIntent.getService(
             this, 0, stopIntent(this),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(this, TRACKING_CHANNEL_ID)
+        return NotificationCompat.Builder(this, TRACKING_CHANNEL)
             .setContentTitle("ERANGU — Tracking Active")
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setOngoing(true)
             .setSilent(true)
-            .addAction(android.R.drawable.ic_delete, "Stop", stopIntent)
+            .addAction(android.R.drawable.ic_delete, "Stop", stopPi)
             .build()
     }
 
-    private fun updateTrackingNotification(distMeters: Float, label: String) {
-        val distText = if (distMeters >= 1000f)
-            "${"%.1f".format(distMeters / 1000f)} km to $label"
-        else
-            "${distMeters.toInt()} m to $label"
-
+    private fun updateTrackingNotif(dist: Float, label: String) {
+        val text = if (dist >= 1000f) "${"%.1f".format(dist / 1000f)} km to $label"
+                   else "${dist.toInt()} m to $label"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(TRACKING_NOTIF_ID, buildTrackingNotification(distText))
+        nm.notify(TRACKING_NOTIF, buildTrackingNotif(text))
     }
 
-    private fun createChannels() {
+    private fun createNotificationChannels() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        // Silent ongoing tracking channel
         nm.createNotificationChannel(
-            NotificationChannel(TRACKING_CHANNEL_ID, "Location Tracking", NotificationManager.IMPORTANCE_LOW)
-                .apply { description = "Shows live distance while ERANGU tracks your journey" }
+            NotificationChannel(TRACKING_CHANNEL, "Location Tracking", NotificationManager.IMPORTANCE_LOW)
+                .apply { description = "Ongoing distance tracking notification" }
         )
-
-        // High-priority alarm channel
         nm.createNotificationChannel(
-            NotificationChannel(ALARM_CHANNEL_ID, "Stop Alarm", NotificationManager.IMPORTANCE_HIGH)
-                .apply {
-                    description = "Fires when you approach your destination stop"
-                    enableVibration(true)
-                    setBypassDnd(true)
-                }
+            NotificationChannel(ALARM_CHANNEL, "Stop Alarm", NotificationManager.IMPORTANCE_HIGH)
+                .apply { description = "Alert when you reach your stop"; setBypassDnd(true); enableVibration(true) }
         )
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
-    private fun distanceBetween(loc: Location, lat: Double, lng: Double): Float {
-        val result = FloatArray(1)
-        Location.distanceBetween(loc.latitude, loc.longitude, lat, lng, result)
-        return result[0]
+    private fun distMeters(loc: Location, lat: Double, lng: Double): Float {
+        val r = FloatArray(1)
+        Location.distanceBetween(loc.latitude, loc.longitude, lat, lng, r)
+        return r[0]
     }
 
-    private data class Destination(
-        val label: String,
-        val latitude: Double,
-        val longitude: Double,
-        val radiusMeters: Int
-    )
-
-    companion object {
-        const val TRACKING_CHANNEL_ID = "erangu_tracking"
-        const val ALARM_CHANNEL_ID    = "erangu_alarm"
-        const val TRACKING_NOTIF_ID   = 1001
-        const val ALARM_NOTIF_ID      = 1002
-
-        private const val ACTION_STOP           = "com.example.erangu.STOP_TRACKING"
-        private const val EXTRA_LABEL           = "label"
-        private const val EXTRA_LATITUDE        = "latitude"
-        private const val EXTRA_LONGITUDE       = "longitude"
-        private const val EXTRA_RADIUS_METERS   = "radiusMeters"
-        private const val UPDATE_INTERVAL_MS    = 4_000L
-        private const val UPDATE_DISTANCE_METERS = 15f
-        private const val DEFAULT_RADIUS_METERS = 800
-
-        fun startIntent(
-            context: Context,
-            label: String,
-            latitude: Double,
-            longitude: Double,
-            radiusMeters: Int
-        ): Intent = Intent(context, LocationForegroundService::class.java).apply {
-            putExtra(EXTRA_LABEL, label)
-            putExtra(EXTRA_LATITUDE, latitude)
-            putExtra(EXTRA_LONGITUDE, longitude)
-            putExtra(EXTRA_RADIUS_METERS, radiusMeters)
-        }
-
-        fun stopIntent(context: Context): Intent =
-            Intent(context, LocationForegroundService::class.java).setAction(ACTION_STOP)
-    }
+    private data class Destination(val label: String, val lat: Double, val lng: Double, val radius: Int)
 }

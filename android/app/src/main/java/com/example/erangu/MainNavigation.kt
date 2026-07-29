@@ -2,11 +2,11 @@ package com.example.erangu
 
 import android.Manifest
 import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -36,9 +36,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.*
 import kotlinx.coroutines.launch
 
-// ── Colour tokens (dark theme matching the web app) ───────────────────────────
+// ── Colour tokens (dark theme matching the web app CSS) ───────────────────────
 private val BgColor       = Color(0xFF0D0E11)
 private val SurfaceColor  = Color(0xFF15161A)
 private val Surface2Color = Color(0xFF1E1F24)
@@ -51,6 +54,7 @@ private val GreenColor    = Color(0xFF16A34A)
 
 private val MODES = listOf("bus", "train", "metro", "custom")
 private val MODE_LABELS = mapOf("bus" to "Bus", "train" to "Train", "metro" to "Metro", "custom" to "Custom")
+private val HOME_MODE_ORDER = listOf("bus", "train", "metro", "custom")
 
 // ── Feature data matching the web page ────────────────────────────────────────
 private val APP_FEATURES = listOf(
@@ -69,6 +73,8 @@ private val HOW_TO_STEPS = listOf(
 )
 
 private data class HowToStep(val number: String, val title: String, val description: String)
+
+private val CHENNAI_CENTER = LatLng(13.0827, 80.2707)
 
 @Composable
 fun ERANGUNavigation(activity: Activity) {
@@ -89,11 +95,12 @@ fun ERANGUNavigation(activity: Activity) {
     var selectedStop    by remember { mutableStateOf<StopResponse?>(null) }
     var selectedMode    by remember { mutableStateOf("bus") }
     var isTracking      by remember { mutableStateOf(false) }
-    var status          by remember { mutableStateOf("Sign in to start tracking") }
+    var status          by remember { mutableStateOf("Explore Chennai routes offline. Sign in to save alerts and sync.") }
     var isLoading       by remember { mutableStateOf(false) }
+    var routeSearch     by remember { mutableStateOf("") }
 
     // ── Screen ──────────────────────────────────────────────────────────────
-    var screen by remember { mutableStateOf("home") } // home | signin | mode
+    var screen by remember { mutableStateOf("home") } // home | signin | mode | routes
 
     // ── Permissions ─────────────────────────────────────────────────────────
     val locationGranted = remember {
@@ -192,7 +199,7 @@ fun ERANGUNavigation(activity: Activity) {
             .fillMaxSize()
             .background(BgColor)
     ) {
-        // Top navigation bar
+        // Top navigation bar (synced with web .top-nav)
         TopBar(
             isSignedIn = isSignedIn,
             userName = userName,
@@ -210,13 +217,14 @@ fun ERANGUNavigation(activity: Activity) {
             onRoutesClick = { screen = "routes" },
             onSignInClick = { screen = "signin" },
             onSignOutClick = {
-                isSignedIn = false; userId = null; userName = ""; routes = emptyList()
-                stops = emptyList(); selectedRoute = null; selectedStop = null
+                isSignedIn = false; userId = null; userName = ""
+                routes = emptyList(); stops = emptyList()
+                selectedRoute = null; selectedStop = null
                 screen = "home"; status = "Signed out."
             }
         )
 
-        // Status bar
+        // Status bar (synced with web .system-bar)
         StatusBar(status = status, isTracking = isTracking)
 
         // Screen content
@@ -225,6 +233,8 @@ fun ERANGUNavigation(activity: Activity) {
                 "routes" -> RoutesScreen(
                     routes = routes,
                     stopsByRoute = stops.groupBy { it.routeId },
+                    routeSearch = routeSearch,
+                    onRouteSearchChange = { routeSearch = it },
                     onRouteClick = { route ->
                         selectedMode = route.mode
                         selectedRoute = route
@@ -251,7 +261,8 @@ fun ERANGUNavigation(activity: Activity) {
                     email = email, name = name, isLoading = isLoading,
                     onEmailChange = { email = it },
                     onNameChange  = { name = it },
-                    onSignIn = { signIn() }
+                    onSignIn = { signIn() },
+                    onCancel = { screen = "home" }
                 )
                 "mode"   -> ModeScreen(
                     mode = selectedMode,
@@ -323,7 +334,7 @@ private fun EranguLogo(modifier: Modifier = Modifier) {
     }
 }
 
-// ── Top Navigation Bar ────────────────────────────────────────────────────────
+// ── Top Navigation Bar (synced with web .top-nav) ──────────────────────────────
 
 @Composable
 private fun TopBar(
@@ -402,7 +413,7 @@ private fun TopBar(
     }
 }
 
-// ── Status Bar ────────────────────────────────────────────────────────────────
+// ── Status Bar (synced with web .system-bar) ───────────────────────────────────
 
 @Composable
 private fun StatusBar(status: String, isTracking: Boolean) {
@@ -425,7 +436,7 @@ private fun StatusBar(status: String, isTracking: Boolean) {
     }
 }
 
-// ── Home Screen ───────────────────────────────────────────────────────────────
+// ── Home Screen (sign-in wall removed — matches web) ─────────────────────────
 
 @Composable
 private fun HomeScreen(
@@ -451,25 +462,8 @@ private fun HomeScreen(
             color = MutedColor, fontSize = 13.sp, lineHeight = 20.sp
         )
 
-        if (!isSignedIn) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Surface2Color),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Get Started", color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                    Text("Sign in to load Chennai routes and arm stop alerts.", color = MutedColor, fontSize = 13.sp)
-                    Button(
-                        onClick = onSignInClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentColor)
-                    ) { Text("Sign In", color = TextColor) }
-                }
-            }
-        }
-
-        MODES.forEach { mode ->
+        // ── Mode Cards (synced with web .home-card) ────────────────────────
+        HOME_MODE_ORDER.forEach { mode ->
             val modeRoutes = routes.filter { it.mode == mode }
             val routeCount = modeRoutes.size
             val stopCount = modeRoutes.sumOf { stopsByRoute[it.id]?.size ?: 0 }
@@ -542,14 +536,15 @@ private fun HomeScreen(
     }
 }
 
-// ── Sign In Screen ────────────────────────────────────────────────────────────
+// ── Sign In Screen (modal-like, triggered from TopBar) ────────────────────────
 
 @Composable
 private fun SignInScreen(
     email: String, name: String, isLoading: Boolean,
     onEmailChange: (String) -> Unit,
     onNameChange: (String) -> Unit,
-    onSignIn: () -> Unit
+    onSignIn: () -> Unit,
+    onCancel: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -593,10 +588,13 @@ private fun SignInScreen(
         ) {
             Text(if (isLoading) "Signing in…" else "Sign In", color = TextColor)
         }
+        TextButton(onClick = onCancel, enabled = !isLoading) {
+            Text("Cancel", color = MutedColor, fontSize = 13.sp)
+        }
     }
 }
 
-// ── Mode Screen ───────────────────────────────────────────────────────────────
+// ── Mode Screen (with Google Maps — matches web .mode-page) ────────────────────
 
 @Composable
 private fun ModeScreen(
@@ -615,23 +613,70 @@ private fun ModeScreen(
     onGrantLocation: () -> Unit,
     onOpenBgSettings: () -> Unit
 ) {
-    LazyColumn(
+    val modeStops = if (selectedRoute != null) {
+        stops.filter { it.routeId == selectedRoute.id }.sortedBy { it.sortOrder }
+    } else emptyList()
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BgColor)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item {
-            Text(
-                "${MODE_LABELS[mode] ?: mode} Routes",
-                color = TextColor, fontWeight = FontWeight.Bold, fontSize = 18.sp
-            )
+        // Map panel (matches web .mode-map-panel)
+        Box(modifier = Modifier.weight(1f)) {
+            if (modeStops.isNotEmpty() || selectedRoute != null) {
+                ERANGMap(
+                    stops = modeStops,
+                    selectedStopId = selectedStop?.id,
+                    mode = mode
+                )
+            } else {
+                // Fallback: show Chennai center map with no stops
+                ERANGMap(
+                    stops = emptyList(),
+                    selectedStopId = null,
+                    mode = mode
+                )
+            }
         }
 
-        // Location permission banner
-        if (!locationGranted) {
-            item {
+        // Controls panel (matches web .mode-controls)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(SurfaceColor)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp
+            )
+        ) {
+            Text(
+                "${MODE_LABELS[mode] ?: mode} Planner",
+                color = TextColor, fontWeight = FontWeight.Bold, fontSize = 18.sp
+            )
+            Text("Full-page view with live alarm planning.", color = MutedColor, fontSize = 12.sp)
+
+            // Control row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { if (isTracking) onStopTracking() else onStartTracking() },
+                    enabled = selectedStop != null || isTracking,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isTracking) DangerColor else AccentColor
+                    )
+                ) {
+                    Text(
+                        if (isTracking) "Stop Tracking" else "Arm Wake-Up Alert",
+                        color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 13.sp
+                    )
+                }
+            }
+
+            // Location permission banner
+            if (!locationGranted) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF7C2D12)),
                     shape = RoundedCornerShape(8.dp),
@@ -646,11 +691,9 @@ private fun ModeScreen(
                     }
                 }
             }
-        }
 
-        // Background location tip
-        if (locationGranted) {
-            item {
+            // Background location tip
+            if (locationGranted) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2E1A)),
                     shape = RoundedCornerShape(8.dp),
@@ -670,129 +713,175 @@ private fun ModeScreen(
                     }
                 }
             }
-        }
 
-        // Route picker
-        if (routes.isNotEmpty()) {
-            item { Text("Select Route", color = MutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-            items(routes) { route ->
-                val isSelected = selectedRoute?.id == route.id
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (isSelected) AccentColor.copy(alpha = 0.15f) else Surface2Color,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .border(1.dp, if (isSelected) AccentColor else LineColor, RoundedCornerShape(8.dp))
-                        .clickable { onRouteSelect(route) }
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(route.name, color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("${route.startLocation} → ${route.endLocation}", color = MutedColor, fontSize = 12.sp)
+            // Route picker
+            if (routes.isNotEmpty()) {
+                Text("Select Route", color = MutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                routes.forEach { route ->
+                    val isSelected = selectedRoute?.id == route.id
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isSelected) AccentColor.copy(alpha = 0.15f) else Surface2Color,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(1.dp, if (isSelected) AccentColor else LineColor, RoundedCornerShape(8.dp))
+                            .clickable { onRouteSelect(route) }
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(route.name, color = TextColor, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                            Text("${route.startLocation} → ${route.endLocation}", color = MutedColor, fontSize = 12.sp)
+                        }
+                        if (isSelected) Text("✓", color = AccentColor, fontWeight = FontWeight.Bold)
                     }
-                    if (isSelected) Text("✓", color = AccentColor, fontWeight = FontWeight.Bold)
                 }
-            }
-        } else if (!isLoading) {
-            item {
+            } else if (!isLoading) {
                 Text(
                     "No routes found for this mode. Sign in to load routes.",
                     color = MutedColor, fontSize = 13.sp,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-        }
 
-        // Stop picker
-        if (stops.isNotEmpty() && selectedRoute != null) {
-            item { Spacer(Modifier.height(4.dp)) }
-            item { Text("Select Destination Stop", color = MutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
-            items(stops) { stop ->
-                val isSelected = selectedStop?.id == stop.id
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            if (isSelected) GreenColor.copy(alpha = 0.12f) else SurfaceColor,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .border(1.dp, if (isSelected) GreenColor else LineColor, RoundedCornerShape(8.dp))
-                        .clickable { onStopSelect(stop) }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(stop.label, color = TextColor, fontSize = 13.sp)
-                    if (isSelected) Text("✓", color = GreenColor, fontWeight = FontWeight.Bold)
+            // Stop picker
+            if (modeStops.isNotEmpty() && selectedRoute != null) {
+                Spacer(Modifier.height(4.dp))
+                Text("Select Destination Stop", color = MutedColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                modeStops.forEach { stop ->
+                    val isSelected = selectedStop?.id == stop.id
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isSelected) GreenColor.copy(alpha = 0.12f) else SurfaceColor,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(1.dp, if (isSelected) GreenColor else LineColor, RoundedCornerShape(8.dp))
+                            .clickable { onStopSelect(stop) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(stop.label, color = TextColor, fontSize = 13.sp)
+                        if (isSelected) Text("✓", color = GreenColor, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
-        }
 
-        // Loading spinner
-        if (isLoading) {
-            item {
+            // Loading spinner
+            if (isLoading) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     CircularProgressIndicator(color = AccentColor, modifier = Modifier.size(28.dp))
                 }
             }
-        }
 
-        // Tracking controls
-        item { Spacer(Modifier.height(8.dp)) }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { if (isTracking) onStopTracking() else onStartTracking() },
-                    enabled = selectedStop != null || isTracking,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isTracking) DangerColor else AccentColor
-                    )
+            // Tracking active banner
+            if (isTracking && selectedStop != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2E1A)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        if (isTracking) "Stop Tracking" else "Arm Wake-Up Alert",
-                        color = TextColor, fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                if (isTracking && selectedStop != null) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2E1A)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            Modifier.padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(Modifier.size(10.dp).background(GreenColor, RoundedCornerShape(50)))
-                            Text(
-                                "Tracking active — alarm will fire near ${selectedStop.label}. Screen can be locked.",
-                                color = Color(0xFFBBF7D0), fontSize = 12.sp, lineHeight = 18.sp
-                            )
-                        }
+                        Box(Modifier.size(10.dp).background(GreenColor, RoundedCornerShape(50)))
+                        Text(
+                            "Tracking active — alarm will fire near ${selectedStop.label}. Screen can be locked.",
+                            color = Color(0xFFBBF7D0), fontSize = 12.sp, lineHeight = 18.sp
+                        )
                     }
                 }
             }
         }
-        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
-// ── Routes Screen ─────────────────────────────────────────────────────────────
+// ── Map View (Google Maps — matches web MapView) ──────────────────────────────
+
+@Composable
+private fun ERANGMap(
+    stops: List<StopResponse>,
+    selectedStopId: Int?,
+    mode: String
+) {
+    val cameraPosition = remember {
+        mutableStateOf(CameraPosition.fromLatLngZoom(CHENNAI_CENTER, 11f))
+    }
+
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = rememberCameraPositionState {
+            this.cameraPosition = cameraPosition.value
+        },
+        onMapClick = { /* no-op for non-custom modes */ }
+    ) {
+        // Route polyline (connects stops in order)
+        if (stops.size > 1) {
+            val points = stops.map { LatLng(it.latitude, it.longitude) }
+            Polyline(
+                points = points,
+                color = Color(0xFFF5F5F5),
+                width = 4f
+            )
+        }
+
+        // Stop markers + radius circles
+        stops.forEach { stop ->
+            val isHighlighted = stop.id == selectedStopId
+            val circleColor = if (isHighlighted) Color.White else Color(0xFFB8B8B8)
+            val fillColor = if (isHighlighted) Color(0x33FFFFFF) else Color(0x33B8B8B8)
+
+            // Radius circle
+            Circle(
+                center = LatLng(stop.latitude, stop.longitude),
+                radius = stop.radiusMeters.toDouble(),
+                fillColor = fillColor,
+                strokeColor = circleColor,
+                strokeWidth = 2f
+            )
+
+            // Stop marker
+            Marker(
+                state = MarkerState(LatLng(stop.latitude, stop.longitude)),
+                title = stop.label,
+                snippet = "Alert radius: ${stop.radiusMeters}m"
+            )
+        }
+    }
+}
+
+// ── Routes Screen (synced with web .routes-page) ──────────────────────────────
 
 @Composable
 private fun RoutesScreen(
     routes: List<RouteResponse>,
     stopsByRoute: Map<Int, List<StopResponse>>,
+    routeSearch: String,
+    onRouteSearchChange: (String) -> Unit,
     onRouteClick: (RouteResponse) -> Unit
 ) {
     val displayModes = listOf("train", "metro", "bus")
+
+    // Filter routes by search
+    val filteredRoutes = if (routeSearch.isBlank()) {
+        routes
+    } else {
+        val query = routeSearch.lowercase()
+        routes.filter { route ->
+            val routeText = "${route.name} ${route.startLocation} ${route.endLocation}".lowercase()
+            if (routeText.contains(query)) return@filter true
+            val stops = stopsByRoute[route.id] ?: emptyList()
+            stops.any { it.label.lowercase().contains(query) }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -803,13 +892,31 @@ private fun RoutesScreen(
         item {
             Text("Chennai Transit Routes", color = TextColor, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             Text(
-                "Browse all train, metro, and bus routes. Tap any route to select it and arm a wake-up alert.",
+                "Search by route name, terminal, or stop. Expand any service to see the full stop sequence and route coverage.",
                 color = MutedColor, fontSize = 13.sp, lineHeight = 19.sp
             )
         }
 
+        // Search bar
+        item {
+            OutlinedTextField(
+                value = routeSearch,
+                onValueChange = onRouteSearchChange,
+                placeholder = { Text("Search routes or stops (example: Guindy, Central, OMR)", color = MutedColor) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = TextColor, unfocusedTextColor = TextColor,
+                    focusedBorderColor = AccentColor, unfocusedBorderColor = LineColor,
+                    cursorColor = AccentColor,
+                    unfocusedPlaceholderColor = MutedColor,
+                    focusedPlaceholderColor = MutedColor
+                )
+            )
+        }
+
         items(displayModes) { mode ->
-            val modeRoutes = routes.filter { it.mode == mode }
+            val modeRoutes = filteredRoutes.filter { it.mode == mode }
             val totalStops = modeRoutes.sumOf { stopsByRoute[it.id]?.size ?: 0 }
             item {
                 Text(
@@ -824,7 +931,7 @@ private fun RoutesScreen(
             if (modeRoutes.isEmpty()) {
                 item {
                     Text(
-                        "No routes loaded. Sign in to load routes.",
+                        if (routeSearch.isNotBlank()) "No matching routes in this mode." else "No routes loaded yet.",
                         color = MutedColor, fontSize = 13.sp,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )

@@ -95,8 +95,12 @@ dependencies {
   implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
   implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
 
-  // FusedLocationProvider — background GPS tracking
-  implementation("com.google.android.gms:play-services-location:21.2.0")
+   // FusedLocationProvider — background GPS tracking
+   implementation("com.google.android.gms:play-services-location:21.2.0")
+
+   // Google Maps for Compose (maps the web Leaflet MapView)
+   implementation("com.google.android.gms:play-services-maps:19.2.0")
+   implementation("com.google.maps.android:maps-compose:6.4.1")
 
   // Coroutines
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

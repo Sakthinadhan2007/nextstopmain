@@ -15,8 +15,13 @@ import type {
 } from "../../../shared/routes";
 
 const configuredApiBase = (import.meta.env.VITE_API_URL ?? "").trim();
+// When running inside the Android WebView (file:// origin), fall back to
+// the deployed backend URL so API calls still work.
+const isNativeApp = typeof window !== "undefined" && !!window.ERANGUAndroid;
 const API_BASE = configuredApiBase
   ? configuredApiBase.replace(/\/+$/, "")
+  : isNativeApp
+  ? "https://nextstopmain.onrender.com"
   : typeof window !== "undefined"
   ? window.location.origin
   : "";

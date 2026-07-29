@@ -36,6 +36,12 @@ class MainActivity : ComponentActivity() {
             settings.databaseEnabled = true
             settings.setGeolocationEnabled(true)
 
+            // Enable file access for local assets
+            settings.allowFileAccess = true
+            settings.allowContentAccess = true
+            settings.allowFileAccessFromFileURLs = true
+            settings.allowUniversalAccessFromFileURLs = true
+
             // Enable responsive design
             settings.useWideViewPort = true
             settings.loadWithOverviewMode = true
@@ -57,11 +63,8 @@ class MainActivity : ComponentActivity() {
             // WebChromeClient for additional features
             webChromeClient = WebChromeClient()
 
-            // Load the web app
-            // In production, change this to your deployed URL (e.g., https://your-domain.com)
-            // For development with Android emulator, use 10.0.2.2:5173 (localhost)
-            // For development with physical device, use your computer's IP address
-            loadUrl("http://10.0.2.2:5173")
+            // Load the web app from local assets
+            loadUrl("file:///android_asset/www/index.html")
         }
     }
 

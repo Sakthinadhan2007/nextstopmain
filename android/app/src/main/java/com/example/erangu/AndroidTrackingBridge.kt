@@ -1,27 +1,39 @@
 package com.example.erangu
 
-import android.content.Context
-import android.content.Intent
+import android.app.Activity
 import android.webkit.JavascriptInterface
-import androidx.core.content.ContextCompat
+import android.widget.Toast
 
-class AndroidTrackingBridge(private val context: Context) {
+/**
+ * JavaScript bridge that the web app (client/src/App.tsx) calls via
+ * `window.ERANGUAndroid.startTracking(...)` and `window.ERANGUAndroid.stopTracking()`.
+ *
+ * This delegates to the native [LocationForegroundService] so that
+ * background GPS tracking and the wake-up alarm work even when the
+ * WebView is paused or the screen is off.
+ */
+class AndroidTrackingBridge(private val activity: Activity) {
 
     @JavascriptInterface
     fun startTracking(label: String, latitude: Double, longitude: Double, radiusMeters: Int) {
-        val intent = LocationForegroundService.startIntent(
-            context, label, latitude, longitude, radiusMeters
-        )
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
+        activity.runOnUiThread {
+            val intent = LocationForegroundService.startIntent(
+                activity, label, latitude, longitude, radiusMeters
+            )
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                activity.startForegroundService(intent)
+            } else {
+                activity.startService(intent)
+            }
+            Toast.makeText(activity, "Tracking: $label", Toast.LENGTH_SHORT).show()
         }
     }
 
     @JavascriptInterface
     fun stopTracking() {
-        val intent = LocationForegroundService.stopIntent(context)
-        context.startService(intent)
+        activity.runOnUiThread {
+            activity.startService(LocationForegroundService.stopIntent(activity))
+            Toast.makeText(activity, "Tracking stopped", Toast.LENGTH_SHORT).show()
+        }
     }
 }

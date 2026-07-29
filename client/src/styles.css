@@ -228,7 +228,7 @@ p {
 
 .system-bar {
   position: fixed;
-  top: calc(64px + var(--safe-top));
+  top: calc(72px + var(--safe-top));
   left: 0;
   right: 0;
   z-index: 1100;

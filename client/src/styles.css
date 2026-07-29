@@ -99,7 +99,7 @@ p {
 
 .top-nav {
   position: fixed;
-  top: var(--safe-top);
+  top: calc(var(--safe-top) - 8px);
   left: 0;
   right: 0;
   z-index: 1200;
@@ -228,7 +228,7 @@ p {
 
 .system-bar {
   position: fixed;
-  top: calc(72px + var(--safe-top));
+  top: calc(64px + var(--safe-top));
   left: 0;
   right: 0;
   z-index: 1100;
@@ -245,7 +245,7 @@ p {
 /* ── Background tracking warning banner ─────────────────────────────── */
 .bg-warning-banner {
   position: fixed;
-  top: calc(108px + var(--safe-top)); /* below system-bar */
+  top: calc(100px + var(--safe-top)); /* below system-bar */
   left: 0;
   right: 0;
   z-index: 1090;
@@ -745,12 +745,12 @@ p {
 }
 
 .mode-page {
-  /* 72px nav + ~38px system-bar = 110px on desktop */
-  height: calc(100vh - 110px - var(--safe-top));
-  margin-top: calc(110px + var(--safe-top));
-  display: grid;
-  grid-template-columns: 1.3fr 0.9fr;
-}
+    /* 64px nav + ~38px system-bar = 102px on desktop */
+    height: calc(100vh - 102px - var(--safe-top));
+    margin-top: calc(102px + var(--safe-top));
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr;
+  }
 
 .mode-map-panel {
   border-right: 1px solid var(--line);
@@ -1017,7 +1017,7 @@ p {
   .mode-page {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: calc(100vh - 110px - var(--safe-top));
+    min-height: calc(100vh - 102px - var(--safe-top));
   }
 
   .mode-map-panel {
@@ -1038,20 +1038,20 @@ p {
   }
 
   .system-bar {
-    top: calc(66px + var(--safe-top));
+    top: calc(58px + var(--safe-top));
     padding: 0.45rem 0.55rem;
   }
 
   .home-page,
   .routes-page {
-    padding-top: calc(106px + var(--safe-top));
+    padding-top: calc(98px + var(--safe-top));
   }
 
   .mode-page {
-    /* 66px nav + ~36px system-bar = 102px on mobile */
-    margin-top: calc(102px + var(--safe-top));
+    /* 58px nav + ~36px system-bar = 94px on mobile */
+    margin-top: calc(94px + var(--safe-top));
     height: auto;
-    min-height: calc(100vh - 102px - var(--safe-top));
+    min-height: calc(100vh - 94px - var(--safe-top));
   }
 
   .home-transport-grid {

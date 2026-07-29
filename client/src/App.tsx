@@ -828,7 +828,12 @@ export default function App(): JSX.Element {
           <button type="button" onClick={() => openMode("custom")}>Custom</button>
           <button type="button" onClick={() => setView("routes")}>Routes</button>
           {!isNativeApp ? (
-            <a href="/app-debug.apk" download className="download-link-btn">Download APK</a>
+            <a href="/erangu.apk" download="ERANGU.apk" className="download-link-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:"5px",verticalAlign:"middle"}}>
+                <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v8"/><path d="M8 12l4 4 4-4"/>
+              </svg>
+              Download App
+            </a>
           ) : null}
           {user ? (
             <button type="button" onClick={onSignOut}>Sign Out</button>

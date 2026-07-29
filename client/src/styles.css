@@ -212,6 +212,20 @@ p {
   background: var(--line);
 }
 
+/* Download App — primary CTA, distinct from regular nav buttons */
+.nav-links .download-link-btn {
+  background: rgba(22, 163, 74, 0.12);
+  border-color: #16a34a;
+  color: #4ade80;
+  font-weight: 600;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.nav-links .download-link-btn:hover {
+  background: rgba(22, 163, 74, 0.22);
+  border-color: #22c55e;
+}
+
 .system-bar {
   position: fixed;
   top: calc(72px + var(--safe-top));

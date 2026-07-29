@@ -3,17 +3,16 @@ package com.example.erangu
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
-import com.example.erangu.theme.ERANGUTheme
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var webView: WebView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,16 +21,54 @@ class MainActivity : ComponentActivity() {
         // Request permissions early
         requestPermissionsIfNeeded()
 
-        setContent {
-            ERANGUTheme(darkTheme = true, dynamicColor = false) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = Color(0xFF0D0E11)
-                ) {
-                    ERANGUNavigation(activity = this)
+        // Create WebView to load web app
+        webView = WebView(this)
+        setContentView(webView)
+
+        configureWebView()
+    }
+
+    private fun configureWebView() {
+        webView.apply {
+            // Enable JavaScript
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.databaseEnabled = true
+            settings.setGeolocationEnabled(true)
+
+            // Enable responsive design
+            settings.useWideViewPort = true
+            settings.loadWithOverviewMode = true
+            settings.setSupportZoom(true)
+            settings.builtInZoomControls = true
+            settings.displayZoomControls = false
+
+            // Improve performance
+            settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+            settings.setAppCacheEnabled(true)
+
+            // WebViewClient to handle page navigation
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    // Inject JavaScript bridge after page loads
+                    injectJavaScriptBridge()
                 }
             }
+
+            // WebChromeClient for additional features
+            webChromeClient = WebChromeClient()
+
+            // Load the web app
+            // In production, change this to your deployed URL (e.g., https://your-domain.com)
+            // For development with Android emulator, use 10.0.2.2:5173 (localhost)
+            // For development with physical device, use your computer's IP address
+            loadUrl("http://10.0.2.2:5173")
         }
+    }
+
+    private fun injectJavaScriptBridge() {
+        // Add JavaScript interface for native features
+        webView.addJavascriptInterface(AndroidTrackingBridge(this), "ERANGUAndroid")
     }
 
     override fun onRequestPermissionsResult(
@@ -41,7 +78,6 @@ class MainActivity : ComponentActivity() {
         flags: Int
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults, flags)
-        // Permissions are re-checked inside ERANGUNavigation composable
     }
 
     private fun requestPermissionsIfNeeded() {
@@ -61,6 +97,14 @@ class MainActivity : ComponentActivity() {
         }
         if (needed.isNotEmpty()) {
             requestPermissions(needed.toTypedArray(), 1001)
+        }
+    }
+
+    override fun onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack()
+        } else {
+            super.onBackPressed()
         }
     }
 }

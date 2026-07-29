@@ -115,3 +115,62 @@ export type RouteDiscoveryRecord = {
   stops: StopRecord[];
   startMatches: StopRecord[];
 };
+
+// ── SafeStop module ─────────────────────────────────────────────────────────
+// All additions below are additive. Nothing above this line is modified.
+
+export const travelerCategoryEnum = z.enum(["child", "woman", "elderly", "none"]);
+export type TravelerCategory = z.infer<typeof travelerCategoryEnum>;
+
+export const safetyProfileSchema = z.object({
+  userId: z.number().int().positive(),
+  safetyMode: z.boolean().default(false),
+  travelerCategory: travelerCategoryEnum.default("none"),
+  contact1Name: z.string().max(120).optional().default(""),
+  contact1Phone: z.string().max(24).optional().default(""),
+  contact2Name: z.string().max(120).optional().default(""),
+  contact2Phone: z.string().max(24).optional().default("")
+});
+
+export const checkInSchema = z.object({
+  userId: z.number().int().positive(),
+  locationName: z.string().min(1),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  destinationName: z.string().min(1)
+});
+
+export const sosSchema = z.object({
+  userId: z.number().int().positive(),
+  locationName: z.string().min(1),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  destinationName: z.string().min(1),
+  triggeredBy: z.enum(["timeout", "help_button"])
+});
+
+export type SafetyProfileInput = z.infer<typeof safetyProfileSchema>;
+export type CheckInInput = z.infer<typeof checkInSchema>;
+export type SosInput = z.infer<typeof sosSchema>;
+
+export type SafetyProfile = {
+  safetyMode: boolean;
+  travelerCategory: TravelerCategory;
+  contact1Name: string;
+  contact1Phone: string;
+  contact2Name: string;
+  contact2Phone: string;
+};
+
+export type SafetyEventRecord = {
+  id: number;
+  userId: number;
+  eventType: "early_exit" | "safe" | "sos" | "sos_sent" | "sos_failed";
+  locationName: string;
+  latitude: number;
+  longitude: number;
+  destinationName: string;
+  respondedAt: string | null;
+  sosDelivered: boolean;
+  createdAt: string;
+};

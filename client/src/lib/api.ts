@@ -1,5 +1,6 @@
 import type {
   AlertRecord,
+  CheckInInput,
   CreateAlertInput,
   CreateRouteInput,
   CreateStopInput,
@@ -7,7 +8,11 @@ import type {
   ProximityStopRecord,
   RouteDiscoveryRecord,
   RouteRecord,
+  SafetyEventRecord,
+  SafetyProfile,
+  SafetyProfileInput,
   SignInInput,
+  SosInput,
   StopRecord,
   TransitCategory,
   UpdateStopInput,
@@ -131,4 +136,22 @@ export function checkProximity(userId: number, latitude: number, longitude: numb
     method: "POST",
     body: JSON.stringify({ latitude, longitude })
   });
+}
+
+// ── SafeStop API (additive) ───────────────────────────────────────────────────
+
+export function saveSafetyProfile(input: SafetyProfileInput): Promise<SafetyProfile> {
+  return request("/api/safety/profile", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function safetyCheckIn(input: CheckInInput): Promise<SafetyEventRecord> {
+  return request("/api/safety/check-in", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function safetySos(input: SosInput): Promise<{
+  event: SafetyEventRecord;
+  smsSent: boolean;
+  contacts: string[];
+}> {
+  return request("/api/safety/sos", { method: "POST", body: JSON.stringify(input) });
 }

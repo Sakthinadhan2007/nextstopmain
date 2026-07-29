@@ -1080,3 +1080,130 @@ p {
     min-width: 90px;
   }
 }
+
+/* ── SafeStop modal ────────────────────────────────────────────────── */
+
+.safestop-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.safestop-modal {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 90vw;
+  text-align: center;
+}
+
+.safestop-header {
+  margin-bottom: 1rem;
+}
+
+.safestop-eyebrow {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--danger);
+  margin: 0 0 0.25rem;
+}
+
+.safestop-header h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.safestop-subtitle {
+  font-size: 0.85rem;
+}
+
+.safestop-countdown {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1rem;
+}
+
+.safestop-ring {
+  width: 100%;
+  height: 100%;
+}
+
+.safestop-ring-track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 6;
+}
+
+.safestop-ring-progress {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.safestop-countdown-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.safestop-countdown-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.safestop-countdown-unit {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.safestop-alerting {
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+.safestop-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.safestop-btn {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.safestop-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.safestop-btn-safe {
+  background: #16a34a;
+  color: #fff;
+}
+
+.safestop-btn-help {
+  background: var(--danger);
+  color: #fff;
+}

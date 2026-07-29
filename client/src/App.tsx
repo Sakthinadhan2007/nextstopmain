@@ -3,11 +3,14 @@ import {
   modeAlertBands,
   type AlertRecord,
   type RouteRecord,
+  type SafetyProfile,
   type StopRecord,
   type TransitCategory,
+  type TravelerCategory,
   type UserRecord
 } from "../../shared/routes";
 import { MapView } from "./components/MapView";
+import { SafeStopModal } from "./components/SafeStopModal";
 import {
   clearRouteStops,
   createAlert,
@@ -16,10 +19,14 @@ import {
   listAlerts,
   listRoutes,
   listStops,
+  saveSafetyProfile,
+  safetyCheckIn,
+  safetySos,
   signIn,
   toggleAlert,
   updateStop
 } from "./lib/api";
+import { SafeStopEngine, type SafeStopTrigger } from "./lib/safeStop";
 
 type Point = { lat: number; lng: number };
 
@@ -47,6 +54,7 @@ const HOME_MODE_ORDER: TransitCategory[] = ["bus", "train", "metro", "custom"];
 const CACHE_PREFIX = "stopmate-cache-v1";
 const LAST_USER_KEY = "stopmate-last-user-v1";
 const LOCAL_ID_KEY = "stopmate-local-id-v1";
+const SAFETY_PROFILE_PREFIX = "stopmate-safety-v1";
 
 const MODE_LABEL: Record<TransitCategory, string> = {
   bus: "Bus",
@@ -122,6 +130,16 @@ function triggerDistance(mode: TransitCategory, stopRadius: number): number {
   return Math.min(stopRadius, modeAlertBands[mode].defaultMeters);
 }
 
+function routePolyline(route: RouteRecord | null, stops: StopRecord[]): Array<{ lat: number; lng: number }> {
+  if (route?.polyline && route.polyline.length >= 2) return route.polyline;
+  if (stops.length >= 2) return stops.map((stop) => ({ lat: stop.latitude, lng: stop.longitude }));
+  return [];
+}
+
+function safetyProfileKey(userId: number): string {
+  return `${SAFETY_PROFILE_PREFIX}-${userId}`;
+}
+
 function Logo(): JSX.Element {
   return (
     <svg viewBox="0 0 96 96" aria-hidden="true" className="stopmate-mark">
@@ -139,6 +157,15 @@ export default function App(): JSX.Element {
   const [view, setView] = useState<View>("home");
   const [showSignIn, setShowSignIn] = useState(false);
   const [authForm, setAuthForm] = useState({ email: "", name: "" });
+  const [safetyForm, setSafetyForm] = useState({
+    travelerCategory: "none" as TravelerCategory,
+    contact1Name: "",
+    contact1Phone: "",
+    contact2Name: "",
+    contact2Phone: ""
+  });
+  const [safetyProfile, setSafetyProfile] = useState<SafetyProfile | null>(null);
+  const [safeStopTrigger, setSafeStopTrigger] = useState<SafeStopTrigger | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [status, setStatus] = useState("Explore Chennai routes offline. Sign in to save alerts and sync.");
   const [online, setOnline] = useState(navigator.onLine);
@@ -183,6 +210,7 @@ export default function App(): JSX.Element {
   const cooldownRef = useRef<Record<number, number>>({});
   const localIdRef = useRef<number>(Number(localStorage.getItem(LOCAL_ID_KEY) ?? "-1"));
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const safeStopEngineRef = useRef<SafeStopEngine | null>(null);
   const [isHidden, setIsHidden] = useState(false);
 
   const activeMode = view === "home" || view === "routes" ? null : view;
@@ -425,6 +453,8 @@ export default function App(): JSX.Element {
         setShowSignIn(false);
         setView("home");
         setStatus("Auto-signed in using cached credentials.");
+        const cachedSafety = readJson<SafetyProfile | null>(safetyProfileKey(lastUser.id), null);
+        if (cachedSafety) setSafetyProfile(cachedSafety);
       } else {
         setShowSignIn(false);
       }
@@ -437,6 +467,15 @@ export default function App(): JSX.Element {
       window.removeEventListener("offline", goOffline);
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setSafetyProfile(null);
+      return;
+    }
+    const cached = readJson<SafetyProfile | null>(safetyProfileKey(user.id), null);
+    if (cached) setSafetyProfile(cached);
+  }, [user]);
 
   useEffect(() => {
     if (!user || !isUsingCache || !online) return;
@@ -521,9 +560,60 @@ export default function App(): JSX.Element {
   useEffect(() => {
     return () => {
       if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
+      safeStopEngineRef.current?.disable();
       stopAlarm();
     };
   }, []);
+
+  function enableSafeStopEngine(): void {
+    if (!safetyProfile?.safetyMode || !currentRoute) return;
+    const polyline = routePolyline(currentRoute, currentStops);
+    safeStopEngineRef.current?.disable();
+    safeStopEngineRef.current = new SafeStopEngine({
+      polyline,
+      onTrigger: (trigger) => setSafeStopTrigger(trigger)
+    });
+    safeStopEngineRef.current.enable();
+  }
+
+  async function handleSafeStopSafe(): Promise<void> {
+    if (!user || !safeStopTrigger) return;
+    try {
+      await safetyCheckIn({
+        userId: user.id,
+        locationName: safeStopTrigger.locationName,
+        latitude: safeStopTrigger.latitude,
+        longitude: safeStopTrigger.longitude,
+        destinationName: currentDest?.label ?? "destination"
+      });
+      setStatus("SafeStop: you confirmed you're safe.");
+    } catch {
+      setStatus("SafeStop check-in saved locally.");
+    } finally {
+      setSafeStopTrigger(null);
+      safeStopEngineRef.current?.disable();
+    }
+  }
+
+  async function handleSafeStopHelp(triggeredBy: "timeout" | "help_button" = "help_button"): Promise<void> {
+    if (!user || !safeStopTrigger) return;
+    try {
+      await safetySos({
+        userId: user.id,
+        locationName: safeStopTrigger.locationName,
+        latitude: safeStopTrigger.latitude,
+        longitude: safeStopTrigger.longitude,
+        destinationName: currentDest?.label ?? "destination",
+        triggeredBy
+      });
+      setStatus("SafeStop: your contacts are being alerted.");
+    } catch {
+      setStatus("SafeStop SOS logged locally.");
+    } finally {
+      setSafeStopTrigger(null);
+      safeStopEngineRef.current?.disable();
+    }
+  }
 
   async function onSignIn(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
@@ -536,6 +626,33 @@ export default function App(): JSX.Element {
       });
       setUser(nextUser);
       await loadWorkspace(nextUser);
+      if (safetyForm.travelerCategory !== "none") {
+        const profileInput = {
+          userId: nextUser.id,
+          safetyMode: true,
+          travelerCategory: safetyForm.travelerCategory,
+          contact1Name: safetyForm.contact1Name.trim(),
+          contact1Phone: safetyForm.contact1Phone.trim(),
+          contact2Name: safetyForm.contact2Name.trim(),
+          contact2Phone: safetyForm.contact2Phone.trim()
+        };
+        try {
+          const saved = await saveSafetyProfile(profileInput);
+          localStorage.setItem(safetyProfileKey(nextUser.id), JSON.stringify(saved));
+          setSafetyProfile(saved);
+        } catch {
+          const localProfile: SafetyProfile = {
+            safetyMode: true,
+            travelerCategory: safetyForm.travelerCategory,
+            contact1Name: safetyForm.contact1Name.trim(),
+            contact1Phone: safetyForm.contact1Phone.trim(),
+            contact2Name: safetyForm.contact2Name.trim(),
+            contact2Phone: safetyForm.contact2Phone.trim()
+          };
+          localStorage.setItem(safetyProfileKey(nextUser.id), JSON.stringify(localProfile));
+          setSafetyProfile(localProfile);
+        }
+      }
       setShowSignIn(false);
       setView("home");
       setStatus(`Signed in as ${nextUser.email}.`);
@@ -568,6 +685,9 @@ export default function App(): JSX.Element {
     }
     stopAlarm();
     window.ERANGUAndroid?.stopTracking();
+    safeStopEngineRef.current?.disable();
+    setSafeStopTrigger(null);
+    setSafetyProfile(null);
     setRoutes([]);
     setStopsByRoute({});
     setAlerts([]);
@@ -593,12 +713,14 @@ export default function App(): JSX.Element {
     setIsLocating(true);
     void armAlarm();
     if (currentDest) startNativeTracking(currentDest);
+    enableSafeStopEngine();
     if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current);
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLastFixTime(new Date().toLocaleTimeString());
         setIsLocating(false);
+        safeStopEngineRef.current?.feed(pos);
       },
       (error) => {
         setStatus(`Location error: ${error.message}`);
@@ -1253,6 +1375,84 @@ export default function App(): JSX.Element {
                   }
                 />
               </label>
+              <div className="panel" style={{ borderColor: "var(--line-soft)" }}>
+                <h2 style={{ fontSize: "1rem" }}>Safety Mode (Optional)</h2>
+                <label>
+                  Traveler Category
+                  <select
+                    value={safetyForm.travelerCategory}
+                    onChange={(event) =>
+                      setSafetyForm((prev) => ({
+                        ...prev,
+                        travelerCategory: event.target.value as TravelerCategory
+                      }))
+                    }
+                  >
+                    <option value="none">None</option>
+                    <option value="child">Child</option>
+                    <option value="woman">Woman</option>
+                    <option value="elderly">Elderly</option>
+                  </select>
+                </label>
+                {safetyForm.travelerCategory !== "none" ? (
+                  <>
+                    <label>
+                      Contact 1 Name
+                      <input
+                        value={safetyForm.contact1Name}
+                        onChange={(event) =>
+                          setSafetyForm((prev) => ({
+                            ...prev,
+                            contact1Name: event.target.value
+                          }))
+                        }
+                        placeholder="Name"
+                      />
+                    </label>
+                    <label>
+                      Contact 1 Phone
+                      <input
+                        type="tel"
+                        value={safetyForm.contact1Phone}
+                        onChange={(event) =>
+                          setSafetyForm((prev) => ({
+                            ...prev,
+                            contact1Phone: event.target.value
+                          }))
+                        }
+                        placeholder="Phone"
+                      />
+                    </label>
+                    <label>
+                      Contact 2 Name
+                      <input
+                        value={safetyForm.contact2Name}
+                        onChange={(event) =>
+                          setSafetyForm((prev) => ({
+                            ...prev,
+                            contact2Name: event.target.value
+                          }))
+                        }
+                        placeholder="Name"
+                      />
+                    </label>
+                    <label>
+                      Contact 2 Phone
+                      <input
+                        type="tel"
+                        value={safetyForm.contact2Phone}
+                        onChange={(event) =>
+                          setSafetyForm((prev) => ({
+                            ...prev,
+                            contact2Phone: event.target.value
+                          }))
+                        }
+                        placeholder="Phone"
+                      />
+                    </label>
+                  </>
+                ) : null}
+              </div>
               <div className="control-row">
                 <button type="submit" disabled={isSigningIn}>
                   {isSigningIn ? "Signing In..." : "Sign In"}
@@ -1268,6 +1468,21 @@ export default function App(): JSX.Element {
             </form>
           </div>
         </div>
+      ) : null}
+
+      {safeStopTrigger ? (
+        <SafeStopModal
+          locationName={safeStopTrigger.locationName}
+          destinationName={currentDest?.label ?? "destination"}
+          onSafe={async () => {
+            await handleSafeStopSafe();
+            setSafeStopTrigger(null);
+          }}
+          onHelp={async (triggeredBy) => {
+            await handleSafeStopHelp(triggeredBy);
+            setSafeStopTrigger(null);
+          }}
+        />
       ) : null}
 
       <footer className="app-footer">

@@ -10,9 +10,15 @@ import {
   modeAlertBands,
   signInSchema,
   toggleAlertSchema,
-  updateStopSchema
+  updateStopSchema,
+  // SafeStop schemas (additive)
+  safetyProfileSchema,
+  checkInSchema,
+  sosSchema
 } from "../shared/routes.js";
 import { storage } from "./storage.js";
+// SafeStop helpers (additive — separate module)
+import { handleCheckIn, handleSos, saveSafetyProfile } from "./safety.js";
 
 const app = express();
 const ALERT_COOLDOWN_MS = 40_000;
@@ -188,6 +194,32 @@ app.post("/api/proximity/:userId", (req, res) => {
     nearest: nearby.slice(0, 5),
     triggered
   });
+});
+
+// ── SafeStop endpoints (additive) ─────────────────────────────────────────────
+
+app.post("/api/safety/profile", (req, res) => {
+  const parsed = safetyProfileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  return res.json(saveSafetyProfile(parsed.data));
+});
+
+app.post("/api/safety/check-in", (req, res) => {
+  const parsed = checkInSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  void handleCheckIn(parsed.data).then((event) => res.json(event));
+});
+
+app.post("/api/safety/sos", (req, res) => {
+  const parsed = sosSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: parsed.error.flatten() });
+  }
+  void handleSos(parsed.data).then((result) => res.json(result));
 });
 
 app.use("/api", (_req, res) => {

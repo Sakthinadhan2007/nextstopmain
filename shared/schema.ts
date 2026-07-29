@@ -20,7 +20,14 @@ export const users = pgTable(
     email: varchar("email", { length: 255 }).notNull().unique(),
     homeCity: varchar("home_city", { length: 120 }).default("Chennai"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    // SafeStop module — optional, all nullable
+    safetyMode: boolean("safety_mode").default(false),
+    travelerCategory: varchar("traveler_category", { length: 24 }).default("none"),
+    contact1Name: varchar("contact1_name", { length: 120 }),
+    contact1Phone: varchar("contact1_phone", { length: 24 }),
+    contact2Name: varchar("contact2_name", { length: 120 }),
+    contact2Phone: varchar("contact2_phone", { length: 24 })
   },
   (table) => ({
     emailIdx: uniqueIndex("users_email_idx").on(table.email)
@@ -236,5 +243,33 @@ export const customStops = pgTable(
   },
   (table) => ({
     routeStopIdx: uniqueIndex("custom_stops_route_seq_idx").on(table.routeId, table.stopSequence)
+  })
+);
+
+// ── SafeStop module ─────────────────────────────────────────────────────────
+// Additive only — no existing table or column modified.
+
+// Note: In-memory storage does not use these Drizzle table definitions directly.
+// They are kept here for documentation and future DB migration purposes.
+// SafeStop data is stored in the InMemoryStorage extension in server/safety.ts.
+
+export const safetyEvents = pgTable(
+  "safety_events",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    eventType: varchar("event_type", { length: 32 }).notNull(),
+    locationName: text("location_name").notNull().default(""),
+    latitude: doublePrecision("latitude").notNull().default(0),
+    longitude: doublePrecision("longitude").notNull().default(0),
+    destinationName: text("destination_name").notNull().default(""),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    sosDelivered: boolean("sos_delivered").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull()
+  },
+  (table) => ({
+    userEventIdx: index("safety_events_user_idx").on(table.userId)
   })
 );

@@ -99,7 +99,7 @@ p {
 
 .top-nav {
   position: fixed;
-  top: calc(var(--safe-top) - 8px);
+  top: 0;
   left: 0;
   right: 0;
   z-index: 1200;
